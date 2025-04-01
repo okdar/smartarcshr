@@ -56,7 +56,7 @@
         <property id="graphBordersColor" type="number">0x555555</property>
         <property id="graphLegendColor" type="number">0x555555</property>
         <property id="graphLineColor" type="number">0x00FF00</property>
-        <property id="graphLineWidth" type="number">1</property>      
+        <property id="graphLineWidth" type="number">2</property>      
         <property id="graphBgColor" type="number">0x000000</property>      
 
         <property id="powerSaver" type="number">1</property>

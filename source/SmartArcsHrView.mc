@@ -665,7 +665,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawGraph(dc, iterator, decimalCount, divider, minimalRange, showLatestValue, numberOfSamples) {
-        var yPos = 90;
+        var yPos = 77;
 
         var minVal = iterator.getMin();
         var maxVal = iterator.getMax();
@@ -678,7 +678,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var leftX = recalculateCoordinate(40); //40 pixels from screen border
 //        var topY = recalculateCoordinate(44) + hrTextDimension[1] + graphTextHeight / 2;
         var topY = recalculateCoordinate(yPos) - 1;
-        var graphHeight = (screenRadius - yPos) * 2;
+        var graphHeight = recalculateCoordinate(screenRadius - 90) * 2;
 //        var graphHeight = screenRadius - topY - graphTextHeight;
         // if (graphPosition != UPPER_GRAPH) {
         //     topY = screenRadius + graphTextHeight;
@@ -700,10 +700,10 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         //draw min and max values
         dc.setColor(graphLegendColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(leftX + recalculateCoordinate(8), topY - graphTextHeight + 3, Graphics.FONT_XTINY, maxValStr, Graphics.TEXT_JUSTIFY_LEFT);
-        dc.drawText(leftX + recalculateCoordinate(8), screenRadius + recalculateCoordinate((yPos / 2) - 7), Graphics.FONT_XTINY, minValStr, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(8), recalculateCoordinate(yPos) + graphHeight - 2, Graphics.FONT_XTINY, minValStr, Graphics.TEXT_JUSTIFY_LEFT);
         //draw rectangle
         dc.setColor(graphBgColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, screenWidth - (2 * recalculateCoordinate(yPos)));
+        dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, graphHeight);
 
         //get latest sample
         var item = iterator.next();
@@ -734,7 +734,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
                     color = Graphics.COLOR_RED;
                 }
                 dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-                dc.drawLine(x1, y1, x1, screenWidth - recalculateCoordinate(yPos));
+                dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
 //                dc.drawPoint(x1, y1);
             }
         } else {
@@ -804,7 +804,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             if (value != null) {
                 y2 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / divider) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
 //                if (graphType == SG_HR) {
-                    dc.drawLine(x2, y2, x2, screenWidth - recalculateCoordinate(yPos));
+                    dc.drawLine(x2, y2, x2, recalculateCoordinate(yPos) + graphHeight);
                 // } else if (y1 != null) {
                 //     dc.drawLine(x2, y2, x1, y1);
                 // } else {
@@ -827,34 +827,33 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
             dc.drawLine(leftX, topY, leftX + recalculateCoordinate(6), topY);
-            dc.drawLine(leftX, screenWidth - recalculateCoordinate(yPos), leftX + recalculateCoordinate(6), screenWidth - recalculateCoordinate(yPos));
+            dc.drawLine(leftX, recalculateCoordinate(yPos) + graphHeight, leftX + recalculateCoordinate(6), recalculateCoordinate(yPos) + graphHeight);
             dc.drawLine(maxX + recalculateCoordinate(5), topY, screenWidth - leftX, topY);
-            dc.drawLine(minX + recalculateCoordinate(5), screenWidth - recalculateCoordinate(yPos), screenWidth - leftX, screenWidth - recalculateCoordinate(yPos));
+            dc.drawLine(minX + recalculateCoordinate(5), recalculateCoordinate(yPos) + graphHeight, screenWidth - leftX, recalculateCoordinate(yPos) + graphHeight);
 
             var x;
             for (var i = 0; i <= 6; i++) {
                 x = leftX + (i * ((screenWidth - (2 * leftX)) / 6 ));
                 dc.drawLine(x, topY, x, topY + recalculateCoordinate(5 + 1));
-                dc.drawLine(x, screenWidth - recalculateCoordinate(yPos) - recalculateCoordinate(5), x, screenWidth - recalculateCoordinate(yPos) + 1);
+                dc.drawLine(x, recalculateCoordinate(yPos) + graphHeight - recalculateCoordinate(5), x, recalculateCoordinate(yPos) + graphHeight + 1);
             }
         }
 
-        leftX += 10;
+        leftX += recalculateCoordinate(8);
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX, screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "60", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX, recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "60", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_BLUE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(20), screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "70", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(20), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "70", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(40), screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "80", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(40), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "80", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(0xffff00, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(60), screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "90", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(60), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "90", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_PINK, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(80), screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "100", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(80), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "100", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(110), screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "110", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(108), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "110", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(140), screenWidth - recalculateCoordinate(yPos - 20), Graphics.FONT_XTINY, "max", Graphics.TEXT_JUSTIFY_LEFT);
-
+        dc.drawText(leftX + recalculateCoordinate(136), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, ">110", Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     function countSamples(iterator) {
