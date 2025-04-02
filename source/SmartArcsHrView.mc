@@ -251,7 +251,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         }
 
         if (hasHeartRateHistory) {
-            drawGraph(targetDc, SensorHistory.getHeartRateHistory({}), 0, 1.0, 5, false, heartRateNumberOfSamples);
+            drawGraph(targetDc, SensorHistory.getHeartRateHistory({}), 5, heartRateNumberOfSamples);
         }
 
         if (dateColor != offSettingFlag) {
@@ -664,7 +664,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         dc.drawText(screenRadius, recalculateCoordinate(30), font, hrText, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    function drawGraph(dc, iterator, decimalCount, divider, minimalRange, showLatestValue, numberOfSamples) {
+    function drawGraph(dc, iterator, minimalRange, numberOfSamples) {
         var yPos = 77;
 
         var minVal = iterator.getMin();
@@ -684,8 +684,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         //     topY = screenRadius + graphTextHeight;
         // }
 
-        minVal = Math.floor(minVal / divider);
-        maxVal = Math.ceil(maxVal / divider);
+        // minVal = Math.floor(minVal / divider);
+        // maxVal = Math.ceil(maxVal / divider);
         var range = maxVal - minVal;
         if (range < minimalRange) {
             var avg = (minVal + maxVal) / 2.0;
@@ -715,9 +715,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 //        dc.setColor(graphLineColor, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(graphLineWidth);
         if (item != null) {
-            value = item.data;            
+            value = item.data;
             if (value != null) {
-                y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / divider) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
+                y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
 
                 var color = Graphics.COLOR_LT_GRAY; //HR<=60
                 if (value > 60 && value <= 70) {
@@ -783,26 +783,25 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             }
 
             value = item.data;
-
-            var color = Graphics.COLOR_LT_GRAY; //HR<=60
-            if (value > 60 && value <= 70) {
-                color = Graphics.COLOR_BLUE;
-            } else if (value > 70 && value <= 80) {
-                color = Graphics.COLOR_GREEN;
-            } else if (value > 80 && value <= 90) {
-                color = 0xffff00; //true yellow
-            } else if (value > 90 && value <= 100) {
-                color = Graphics.COLOR_PINK;
-            } else if (value > 100 && value <= 110) {
-                color = Graphics.COLOR_ORANGE;
-            } else if (value > 110) {
-                color = Graphics.COLOR_RED;
-            }
-            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-
             x2 = x1 - 1;
             if (value != null) {
-                y2 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / divider) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
+                var color = Graphics.COLOR_LT_GRAY; //HR<=60
+                if (value > 60 && value <= 70) {
+                    color = Graphics.COLOR_BLUE;
+                } else if (value > 70 && value <= 80) {
+                    color = Graphics.COLOR_GREEN;
+                } else if (value > 80 && value <= 90) {
+                    color = 0xffff00; //true yellow
+                } else if (value > 90 && value <= 100) {
+                    color = Graphics.COLOR_PINK;
+                } else if (value > 100 && value <= 110) {
+                    color = Graphics.COLOR_ORANGE;
+                } else if (value > 110) {
+                    color = Graphics.COLOR_RED;
+                }
+                dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+
+                y2 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
 //                if (graphType == SG_HR) {
                     dc.drawLine(x2, y2, x2, recalculateCoordinate(yPos) + graphHeight);
                 // } else if (y1 != null) {
