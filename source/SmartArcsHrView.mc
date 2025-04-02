@@ -96,14 +96,19 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var hrRefreshInterval;
     var graphBordersColor;
     var graphLegendColor;
-//    var graphLineColor;
     var graphLineWidth;
     var graphBgColor;
+    var graphStyle;
     var powerSaver;
     var powerSaverRefreshInterval;
     var powerSaverIconColor;
     var sunriseColor;
     var sunsetColor;
+
+    enum { // graph style
+        LINE = 1,
+        AREA = 2
+    }
 
     function initialize() {
         WatchFace.initialize();
@@ -342,14 +347,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         showBatteryIndicator = app.getProperty("showBatteryIndicator");
 
         graphBordersColor = app.getProperty("graphBordersColor");
-        graphLegendColor = app.getProperty("graphLegendColor");
         graphLineWidth = app.getProperty("graphLineWidth");
         graphBgColor = app.getProperty("graphBgColor");
-        // if (oneColor == offSettingFlag) {
-        //     graphLineColor = app.getProperty("graphLineColor");
-        // } else {
-        //     graphLineColor = oneColor;
-        // }
+        graphStyle = app.getProperty("graphStyle");
 
         var power = app.getProperty("powerSaver");
 		powerSaverRefreshInterval = app.getProperty("powerSaverRefreshInterval");
@@ -676,16 +676,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var graphTextHeight = dc.getTextDimensions("8", Graphics.FONT_XTINY)[1]; //font height
 
         var leftX = recalculateCoordinate(40); //40 pixels from screen border
-//        var topY = recalculateCoordinate(44) + hrTextDimension[1] + graphTextHeight / 2;
         var topY = recalculateCoordinate(yPos) - 1;
         var graphHeight = recalculateCoordinate(screenRadius - 90) * 2;
-//        var graphHeight = screenRadius - topY - graphTextHeight;
-        // if (graphPosition != UPPER_GRAPH) {
-        //     topY = screenRadius + graphTextHeight;
-        // }
 
-        // minVal = Math.floor(minVal / divider);
-        // maxVal = Math.ceil(maxVal / divider);
         var range = maxVal - minVal;
         if (range < minimalRange) {
             var avg = (minVal + maxVal) / 2.0;
@@ -698,12 +691,13 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var maxValStr = maxVal.format("%.0f");
 
         //draw min and max values
-        dc.setColor(graphLegendColor, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
         dc.drawText(leftX + recalculateCoordinate(8), topY - graphTextHeight + 3, Graphics.FONT_XTINY, maxValStr, Graphics.TEXT_JUSTIFY_LEFT);
         dc.drawText(leftX + recalculateCoordinate(8), recalculateCoordinate(yPos) + graphHeight - 2, Graphics.FONT_XTINY, minValStr, Graphics.TEXT_JUSTIFY_LEFT);
         //draw rectangle
         dc.setColor(graphBgColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, graphHeight);
+        dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, graphHeight); // for graph
+        dc.fillRectangle(leftX, recalculateCoordinate(yPos + 15) + graphHeight, screenWidth - (2 * leftX) + 1, graphTextHeight); // for legend
 
         //get latest sample
         var item = iterator.next();
@@ -712,30 +706,18 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var x1 = (screenWidth - leftX).toNumber();
         var y1 = null;
         var x2, y2;
-//        dc.setColor(graphLineColor, Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(graphLineWidth);
         if (item != null) {
             value = item.data;
             if (value != null) {
                 y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
 
-                var color = Graphics.COLOR_LT_GRAY; //HR<=60
-                if (value > 60 && value <= 70) {
-                color = Graphics.COLOR_BLUE;
-                } else if (value > 70 && value <= 80) {
-                    color = Graphics.COLOR_GREEN;
-                } else if (value > 80 && value <= 90) {
-                    color = 0xffff00; //true yellow
-                } else if (value > 90 && value <= 100) {
-                    color = Graphics.COLOR_PINK;
-                } else if (value > 100 && value <= 110) {
-                    color = Graphics.COLOR_ORANGE;
-                } else if (value > 110) {
-                    color = Graphics.COLOR_RED;
+                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+                if (graphStyle == AREA) {
+                    dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
+                } else {
+                    dc.drawPoint(x1, y1);
                 }
-                dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-                dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
-//                dc.drawPoint(x1, y1);
             }
         } else {
             //no samples
@@ -785,30 +767,15 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             value = item.data;
             x2 = x1 - 1;
             if (value != null) {
-                var color = Graphics.COLOR_LT_GRAY; //HR<=60
-                if (value > 60 && value <= 70) {
-                    color = Graphics.COLOR_BLUE;
-                } else if (value > 70 && value <= 80) {
-                    color = Graphics.COLOR_GREEN;
-                } else if (value > 80 && value <= 90) {
-                    color = 0xffff00; //true yellow
-                } else if (value > 90 && value <= 100) {
-                    color = Graphics.COLOR_PINK;
-                } else if (value > 100 && value <= 110) {
-                    color = Graphics.COLOR_ORANGE;
-                } else if (value > 110) {
-                    color = Graphics.COLOR_RED;
-                }
-                dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-
+                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
                 y2 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
-//                if (graphType == SG_HR) {
+                if (graphStyle == AREA) {
                     dc.drawLine(x2, y2, x2, recalculateCoordinate(yPos) + graphHeight);
-                // } else if (y1 != null) {
-                //     dc.drawLine(x2, y2, x1, y1);
-                // } else {
-                //     dc.drawPoint(x2, y2);
-                // }
+                } else if (y1 != null) {
+                    dc.drawLine(x2, y2, x1, y1);
+                } else {
+                    dc.drawPoint(x2, y2);
+                }
                 y1 = y2;
             } else {
                 y1 = null;
@@ -853,6 +820,25 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         dc.drawText(leftX + recalculateCoordinate(108), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "110", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
         dc.drawText(leftX + recalculateCoordinate(136), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, ">110", Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    function getGraphLineColor(value) {
+        var color = Graphics.COLOR_LT_GRAY; //HR<=60
+        if (value > 60 && value <= 70) {
+            color = Graphics.COLOR_BLUE;
+        } else if (value > 70 && value <= 80) {
+            color = Graphics.COLOR_GREEN;
+        } else if (value > 80 && value <= 90) {
+            color = 0xffff00; //true yellow
+        } else if (value > 90 && value <= 100) {
+            color = Graphics.COLOR_PINK;
+        } else if (value > 100 && value <= 110) {
+            color = Graphics.COLOR_ORANGE;
+        } else if (value > 110) {
+            color = Graphics.COLOR_RED;
+        }
+
+        return color;
     }
 
     function countSamples(iterator) {
