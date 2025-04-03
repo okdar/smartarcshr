@@ -89,7 +89,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var ticks5MinWidth;
     var ticks15MinWidth;
     var oneColor;
-    var handsOnTop;
     var showBatteryIndicator;
     var dateFormat;
     var hrColor;
@@ -251,21 +250,16 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             drawTicks(targetDc);
         }
 
-        if (!handsOnTop) {
-            drawHands(targetDc, clockTime);
-        }
-
         if (hasHeartRateHistory) {
-            drawGraph(targetDc, SensorHistory.getHeartRateHistory({}), 5, heartRateNumberOfSamples);
+            //drawGraph(targetDc, SensorHistory.getHeartRateHistory({}), 5, heartRateNumberOfSamples);
+            drawGraph2(targetDc, SensorHistory.getHeartRateHistory({}), 5, heartRateNumberOfSamples);
         }
 
         if (dateColor != offSettingFlag) {
             drawDate(targetDc);
         }
 
-        if (handsOnTop) {
-            drawHands(targetDc, clockTime);
-        }
+        drawHands(targetDc, clockTime);
 
         //output the offscreen buffers to the main display if required.
         drawBackground(dc);
@@ -341,8 +335,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         if (hrColor != offSettingFlag) {
             hrRefreshInterval = app.getProperty("hrRefreshInterval");
         }
-
-        handsOnTop = app.getProperty("handsOnTop");
 
         showBatteryIndicator = app.getProperty("showBatteryIndicator");
 
@@ -712,7 +704,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             if (value != null) {
                 y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
 
-                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+//                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
                 if (graphStyle == AREA) {
                     dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
                 } else {
@@ -767,7 +760,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             value = item.data;
             x2 = x1 - 1;
             if (value != null) {
-                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+//                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+                dc.setColor(Graphics.COLOR_GREEN, Graphics.COLOR_TRANSPARENT);
                 y2 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
                 if (graphStyle == AREA) {
                     dc.drawLine(x2, y2, x2, recalculateCoordinate(yPos) + graphHeight);
@@ -805,6 +799,115 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             }
         }
 
+        drawHrLegend(dc, leftX, yPos, graphHeight);
+    }
+
+    function drawGraph2(dc, iterator, minimalRange, numberOfSamples) {
+        var yPos = 77;
+
+        var minVal = iterator.getMin();
+        var maxVal = iterator.getMax();
+        if (minVal == null || maxVal == null || numberOfSamples == 0) {
+            return;
+        }
+
+        var graphTextHeight = dc.getTextDimensions("8", Graphics.FONT_XTINY)[1]; //font height
+
+        var leftX = recalculateCoordinate(40); //40 pixels from screen border
+        var topY = recalculateCoordinate(yPos) - 1;
+        var graphHeight = recalculateCoordinate(screenRadius - 90) * 2;
+
+        var range = maxVal - minVal;
+        if (range < minimalRange) {
+            var avg = (minVal + maxVal) / 2.0;
+            minVal = avg - (minimalRange / 2.0);
+            maxVal = avg + (minimalRange / 2.0);
+            range = minimalRange;
+        }
+
+        var minValStr = minVal.format("%.0f");
+        var maxValStr = maxVal.format("%.0f");
+
+        //draw min and max values
+        dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(leftX + recalculateCoordinate(8), topY - graphTextHeight + 3, Graphics.FONT_XTINY, maxValStr, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(8), recalculateCoordinate(yPos) + graphHeight - 2, Graphics.FONT_XTINY, minValStr, Graphics.TEXT_JUSTIFY_LEFT);
+        //draw rectangle
+        dc.setColor(graphBgColor, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, graphHeight); // for graph
+        dc.fillRectangle(leftX, recalculateCoordinate(yPos + 15) + graphHeight, screenWidth - (2 * leftX) + 1, graphTextHeight); // for legend
+
+        var x1 = (screenWidth - leftX).toNumber();
+        var y1 = null;
+        var x2 = null;
+        var y2 = null;
+        var value = null;
+        var value1, value2;
+        dc.setPenWidth(graphLineWidth);
+        //start from the latest sample
+        var item1 = iterator.next();
+        var item2 = iterator.next();
+        while (item1 != null && item2 != null) {
+            value1 = item1.data;
+            value2 = item2.data;
+
+            if (value1 != null && value2 != null) {
+                value = (value1 + value2) / 2.0; //average samples value
+            //    value = value1 > value2 ? value1 : value2; //max samples value
+            } else if (value1 != null) {
+                value = value1;
+            } else if (value2 != null) {
+                value = value2;
+            } else {
+                value = null;
+            }
+
+            if (value != null) {
+                y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
+                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+                if (graphStyle == AREA) {
+                    dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
+                } else if (x2 != null && y2 != null) {
+                    dc.drawLine(x1, y1, x2, y2);
+                } else {
+                    dc.drawPoint(x1, y1);
+                }
+            }
+
+            x2 = x1;
+            y2 = y1;
+            x1--;
+
+            item1 = iterator.next();
+            item2 = iterator.next();
+        }
+
+
+        //draw graph borders
+        if (graphBordersColor != offSettingFlag) {
+            var maxX = leftX + (dc.getTextDimensions(maxValStr, Graphics.FONT_XTINY))[0] + 5;
+            var minX = leftX + (dc.getTextDimensions(minValStr, Graphics.FONT_XTINY))[0] + 5;
+            dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
+            dc.drawLine(leftX, topY, leftX + recalculateCoordinate(6), topY);
+            dc.drawLine(leftX, recalculateCoordinate(yPos) + graphHeight, leftX + recalculateCoordinate(6), recalculateCoordinate(yPos) + graphHeight);
+            dc.drawLine(maxX + recalculateCoordinate(5), topY, screenWidth - leftX, topY);
+            dc.drawLine(minX + recalculateCoordinate(5), recalculateCoordinate(yPos) + graphHeight, screenWidth - leftX, recalculateCoordinate(yPos) + graphHeight);
+
+            var x;
+            for (var i = 0; i <= 6; i++) {
+                x = leftX + (i * ((screenWidth - (2 * leftX)) / 6 ));
+                dc.drawLine(x, topY, x, topY + recalculateCoordinate(5 + 1));
+                dc.drawLine(x, recalculateCoordinate(yPos) + graphHeight - recalculateCoordinate(5), x, recalculateCoordinate(yPos) + graphHeight + 1);
+            }
+        }
+
+        drawHrLegend(dc, leftX, yPos, graphHeight);
+    }
+
+    function drawHrLegend(dc, x, y, graphHeight) {
+        var leftX = x;
+        var yPos = y;
         leftX += recalculateCoordinate(8);
         dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(leftX, recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "60", Graphics.TEXT_JUSTIFY_LEFT);

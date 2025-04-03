@@ -28,7 +28,6 @@
         <property id="handsOutlineColor" type="number">0x000000</property>
         <property id="hourHandWidth" type="number">4</property>
         <property id="minuteHandWidth" type="number">4</property>
-        <property id="handsOnTop" type="boolean">true</property>
 
         <property id="oneColor" type="number">-999</property>
 
@@ -78,7 +77,6 @@
         <string id="hourHandWidth">Hour hand width</string>
         <string id="minuteHandWidth">Minute hand width</string>
         <string id="handWidthError">Value range: 1 to 10</string>
-        <string id="handsOnTop">Draw hands on top of activity indicators</string>
 
         <string id="oneColor">One color for all indicators (off or color; color overrides indicator color and graph line color settings below)</string>
 
@@ -493,9 +491,6 @@
         </setting>
         <setting propertyKey="@Properties.minuteHandWidth" title="@Strings.minuteHandWidth">
             <settingConfig type="numeric" min="1" max="10" errorMessage="@Strings.handWidthError"/>
-        </setting>
-        <setting propertyKey="@Properties.handsOnTop" title="@Strings.handsOnTop">
-            <settingConfig type="boolean"/>
         </setting>
 
         <setting propertyKey="@Properties.oneColor" title="@Strings.oneColor">
