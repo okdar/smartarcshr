@@ -815,7 +815,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         var leftX = recalculateCoordinate(40); //40 pixels from screen border
         var topY = recalculateCoordinate(yPos) - 1;
-        var graphHeight = recalculateCoordinate(screenRadius - 90) * 2;
+        var graphHeight = recalculateCoordinate(80);
 
         var range = maxVal - minVal;
         if (range < minimalRange) {
@@ -837,34 +837,18 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, graphHeight); // for graph
         dc.fillRectangle(leftX, recalculateCoordinate(yPos + 15) + graphHeight, screenWidth - (2 * leftX) + 1, graphTextHeight); // for legend
 
-        var x1 = (screenWidth - leftX).toNumber();
+        var x1;
         var y1 = null;
         var x2 = null;
         var y2 = null;
         var value = null;
-        var value1, value2;
+        var values = processHrIterator(iterator, numberOfSamples);
         dc.setPenWidth(graphLineWidth);
-        //start from the latest sample
-        var item1 = iterator.next();
-        var item2 = iterator.next();
-        while (item1 != null && item2 != null) {
-            value1 = item1.data;
-            value2 = item2.data;
-
-            if (value1 != null && value2 != null) {
-                value = (value1 + value2) / 2.0; //average samples value
-            //    value = value1 > value2 ? value1 : value2; //max samples value
-            } else if (value1 != null) {
-                value = value1;
-            } else if (value2 != null) {
-                value = value2;
-            } else {
-                value = null;
-            }
-
-            if (value != null) {
-                y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(value) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
-                dc.setColor(getGraphLineColor(value), Graphics.COLOR_TRANSPARENT);
+        for (var i = 0; i < values.size(); i++)  {
+            x1 = screenWidth - recalculateCoordinate(40 + i).toNumber();
+            if (values[i] != null) {
+                y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(values[i]) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
+                dc.setColor(getGraphLineColor(values[i]), Graphics.COLOR_TRANSPARENT);
                 if (graphStyle == AREA) {
                     dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
                 } else if (x2 != null && y2 != null) {
@@ -873,15 +857,19 @@ class SmartArcsHrView extends WatchUi.WatchFace {
                     dc.drawPoint(x1, y1);
                 }
             }
-
             x2 = x1;
             y2 = y1;
-            x1--;
-
-            item1 = iterator.next();
-            item2 = iterator.next();
         }
 
+        var last15 = 0;
+        for (var i = 0; i < 15; i++)  {
+            if (values[i] != null) {
+                last15 += values[i];
+            }
+        }
+        var last15Avg = last15 / 15;
+        dc.setColor(getGraphLineColor(last15Avg), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(screenRadius, topY - graphTextHeight, Graphics.FONT_XTINY, (last15 / 15).format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
 
         //draw graph borders
         if (graphBordersColor != offSettingFlag) {
@@ -905,6 +893,73 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         drawHrLegend(dc, leftX, yPos, graphHeight);
     }
 
+    function processHrIterator(iterator, numberOfSamples) {
+        var batchSize = 1; // Start with 1 value to process
+        if (numberOfSamples > 180) {
+            batchSize = Math.ceil(numberOfSamples / 180); // Dynamically calculate how many values to process in batch
+        }
+
+        var processedValues = []; // Array to store processed values
+        var currentSum = 0;
+        var count = 0;
+        var countNull = 0;
+
+        var item = iterator.next();
+        while (item != null) {
+            if (item.data != null) {
+                currentSum += item.data;
+                count++;
+            } else {
+                countNull++;
+            }
+
+            // If we've collected enough values for batch processing
+            if ((count + countNull) == batchSize) {
+                if (countNull == batchSize) {
+                    processedValues.add(null);
+                } else {
+                    processedValues.add(currentSum / count); // Store the averaged value
+                }
+                currentSum = 0;
+                count = 0;
+                countNull = 0;
+            }
+
+            item = iterator.next();
+        }
+
+        // Handle any remaining values that didn't form a complete group
+        if (count > 0) {
+            var averageValue = currentSum / count;
+            processedValues.add(averageValue);
+        }
+
+        return processedValues;
+    }
+
+// function drawHrLegend(dc, x, y, graphHeight) {
+//     var leftX = x + recalculateCoordinate(8);
+//     var yPos = recalculateCoordinate(y + 15) + graphHeight;
+
+//     // Define legend values and their corresponding colors
+//     var legendItems = [
+//         { value: "60", color: Graphics.COLOR_LT_GRAY },
+//         { value: "70", color: Graphics.COLOR_BLUE },
+//         { value: "80", color: Graphics.COLOR_GREEN },
+//         { value: "90", color: 0xffff00 }, // true yellow
+//         { value: "100", color: Graphics.COLOR_PINK },
+//         { value: "110", color: Graphics.COLOR_ORANGE },
+//         { value: "110+", color: Graphics.COLOR_RED }
+//     ];
+
+//     // Draw each legend item
+//     for (var i = 0; i < legendItems.size(); i++) {
+//         var item = legendItems[i];
+//         dc.setColor(item.color, Graphics.COLOR_TRANSPARENT);
+//         dc.drawText(leftX + recalculateCoordinate(i * 20), yPos, Graphics.FONT_XTINY, item.value, Graphics.TEXT_JUSTIFY_LEFT);
+//     }
+// }
+
     function drawHrLegend(dc, x, y, graphHeight) {
         var leftX = x;
         var yPos = y;
@@ -922,26 +977,25 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         dc.setColor(Graphics.COLOR_ORANGE, Graphics.COLOR_TRANSPARENT);
         dc.drawText(leftX + recalculateCoordinate(108), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "110", Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(136), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, ">110", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(136), recalculateCoordinate(yPos + 15) + graphHeight, Graphics.FONT_XTINY, "110+", Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     function getGraphLineColor(value) {
-        var color = Graphics.COLOR_LT_GRAY; //HR<=60
-        if (value > 60 && value <= 70) {
-            color = Graphics.COLOR_BLUE;
-        } else if (value > 70 && value <= 80) {
-            color = Graphics.COLOR_GREEN;
-        } else if (value > 80 && value <= 90) {
-            color = 0xffff00; //true yellow
-        } else if (value > 90 && value <= 100) {
-            color = Graphics.COLOR_PINK;
-        } else if (value > 100 && value <= 110) {
-            color = Graphics.COLOR_ORANGE;
-        } else if (value > 110) {
-            color = Graphics.COLOR_RED;
+        if (value <= 60) {
+            return Graphics.COLOR_LT_GRAY; // HR <= 60
+        } else if (value <= 70) {
+            return Graphics.COLOR_BLUE; // 61-70
+        } else if (value <= 80) {
+            return Graphics.COLOR_GREEN; // 71-80
+        } else if (value <= 90) {
+            return 0xffff00; // true yellow, 81-90
+        } else if (value <= 100) {
+            return Graphics.COLOR_PINK; // 91-100
+        } else if (value <= 110) {
+            return Graphics.COLOR_ORANGE; // 101-110
+        } else {
+            return Graphics.COLOR_RED; // > 110
         }
-
-        return color;
     }
 
     function countSamples(iterator) {
