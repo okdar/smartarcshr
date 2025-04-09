@@ -68,7 +68,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 	var locationLongitude;
     var dateAt6Y;
     var dateInfo;
-    // var genericZoneInfo;
 
     //user settings
     var bgColor;
@@ -94,7 +93,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var hrColor;
     var hrRefreshInterval;
     var graphBordersColor;
-    var graphLegendColor;
     var graphLineWidth;
     var graphBgColor;
     var graph60Color;
@@ -671,8 +669,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     function drawHrGraph(dc, minimalRange) {
         var hrIterator = SensorHistory.getHeartRateHistory({});
-        var yPos = 77;
-
         var minVal = hrIterator.getMin();
         var maxVal = hrIterator.getMax();
         if (minVal == null || maxVal == null || heartRateNumberOfSamples == 0) {
@@ -682,8 +678,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var graphTextHeight = dc.getTextDimensions("8", Graphics.FONT_XTINY)[1]; //font height
 
         var leftX = recalculateCoordinate(40); // 40 pixels from screen border
-        var topY = recalculateCoordinate(yPos) - 1;
         var graphHeight = recalculateCoordinate(80); // fixed height of the graph
+        var graphTopY = recalculateCoordinate(76);
+        var graphBottomY = graphTopY + graphHeight;
 
         var range = maxVal - minVal;
         if (range < minimalRange) {
@@ -698,27 +695,26 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         //draw min and max values
         dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(leftX + recalculateCoordinate(8), topY - graphTextHeight + 3, Graphics.FONT_XTINY, maxValStr, Graphics.TEXT_JUSTIFY_LEFT);
-        dc.drawText(leftX + recalculateCoordinate(8), recalculateCoordinate(yPos) + graphHeight - 2, Graphics.FONT_XTINY, minValStr, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(8), graphTopY - graphTextHeight + 3, Graphics.FONT_XTINY, maxValStr, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(leftX + recalculateCoordinate(8), graphBottomY - 2, Graphics.FONT_XTINY, minValStr, Graphics.TEXT_JUSTIFY_LEFT);
         //draw rectangle
         dc.setColor(graphBgColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(leftX, recalculateCoordinate(yPos), screenWidth - (2 * leftX) + 1, graphHeight); // for graph
-        dc.fillRectangle(leftX, recalculateCoordinate(yPos + 15) + graphHeight, screenWidth - (2 * leftX) + 1, graphTextHeight); // for legend
+        dc.fillRectangle(leftX, graphTopY + 1, screenWidth - (2 * leftX) + 1, graphHeight - 1); //for graph
+        dc.fillRectangle(leftX + recalculateCoordinate(2), graphBottomY + recalculateCoordinate(17), screenWidth - (2 * (leftX + recalculateCoordinate(2))) + 1, graphTextHeight - 1); //for legend
 
         var x1;
         var y1 = null;
         var x2 = null;
         var y2 = null;
-        var value = null;
         var values = processHrIterator(hrIterator, heartRateNumberOfSamples);
         dc.setPenWidth(graphLineWidth);
         for (var i = 0; i < values.size(); i++)  {
             x1 = screenWidth - recalculateCoordinate(40 + i).toNumber();
             if (values[i] != null) {
-                y1 = (topY + graphHeight + 1) - ((recalculateCoordinate(values[i]) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
+                y1 = graphBottomY - ((recalculateCoordinate(values[i]) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
                 dc.setColor(getGraphLineColor(values[i]), Graphics.COLOR_TRANSPARENT);
                 if (graphStyle == AREA) {
-                    dc.drawLine(x1, y1, x1, recalculateCoordinate(yPos) + graphHeight);
+                    dc.drawLine(x1, y1, x1, graphBottomY);
                 } else if (x2 != null && y2 != null) {
                     dc.drawLine(x1, y1, x2, y2);
                 } else {
@@ -742,9 +738,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             var last15Avg = last15Sum / count;
             dc.setColor(graphBgColor, Graphics.COLOR_TRANSPARENT);
             var avgHrStrDim = dc.getTextDimensions(last15Avg.format("%.0f"), Graphics.FONT_XTINY);
-            dc.fillRectangle(screenRadius - (avgHrStrDim[0] / 2) - 3, topY - graphTextHeight - 2, avgHrStrDim[0] + 6, graphTextHeight); // for average HR
+            dc.fillRectangle(screenRadius - (avgHrStrDim[0] / 2) - 3, graphTopY - graphTextHeight - 2, avgHrStrDim[0] + 6, graphTextHeight); // for average HR
             dc.setColor(getGraphLineColor(last15Avg), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(screenRadius, topY - graphTextHeight - 2, Graphics.FONT_XTINY, last15Avg.format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(screenRadius, graphTopY - graphTextHeight - 2, Graphics.FONT_XTINY, last15Avg.format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
         }
         
         //draw graph borders
@@ -753,39 +749,35 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             var minX = leftX + (dc.getTextDimensions(minValStr, Graphics.FONT_XTINY))[0] + 5;
             dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
             dc.setPenWidth(1);
-            dc.drawLine(leftX, topY, leftX + recalculateCoordinate(6), topY);
-            dc.drawLine(leftX, recalculateCoordinate(yPos) + graphHeight, leftX + recalculateCoordinate(6), recalculateCoordinate(yPos) + graphHeight);
-            dc.drawLine(maxX + recalculateCoordinate(5), topY, screenWidth - leftX, topY);
-            dc.drawLine(minX + recalculateCoordinate(5), recalculateCoordinate(yPos) + graphHeight, screenWidth - leftX, recalculateCoordinate(yPos) + graphHeight);
+            dc.drawLine(leftX, graphTopY, leftX + recalculateCoordinate(6), graphTopY);
+            dc.drawLine(leftX, graphBottomY, leftX + recalculateCoordinate(6), graphBottomY);
+            dc.drawLine(maxX + 5, graphTopY, screenWidth - leftX, graphTopY);
+            dc.drawLine(minX + 5, graphBottomY, screenWidth - leftX, graphBottomY);
 
             var x;
             for (var i = 0; i <= 6; i++) {
                 x = leftX + (i * ((screenWidth - (2 * leftX)) / 6 ));
-                dc.drawLine(x, topY, x, topY + recalculateCoordinate(5 + 1));
-                dc.drawLine(x, recalculateCoordinate(yPos) + graphHeight - recalculateCoordinate(5), x, recalculateCoordinate(yPos) + graphHeight + 1);
+                dc.drawLine(x, graphTopY, x, graphTopY + recalculateCoordinate(6));
+                dc.drawLine(x, graphBottomY - recalculateCoordinate(5), x, graphBottomY + 1);
             }
         }
 
-        drawHrLegend(dc, leftX, yPos, graphHeight);
+        drawHrLegend(dc, leftX, graphBottomY);
     }
 
     function processHrIterator(iterator, numberOfSamples) {
-        var batchSize = 1; // Start with 1 value to process
-        if (numberOfSamples > 180) {
-            batchSize = Math.ceil(numberOfSamples / 180); // Dynamically calculate how many values to process in batch
-        }
+        var batchSize = (numberOfSamples > 180) ? Math.ceil(numberOfSamples / 180) : 1; //dynamically calculate how many values to process in a batch
 
-        var processedValues = []; // Array to store processed values
+        var processedValues = [];
         var currentSum = 0;
         var count = 0;
         var countNull = 0;
-
-        var skipFirstSample = false;
+        var testForSkip = true;
 
         var item = iterator.next();
         while (item != null) {
-            if (!skipFirstSample) { //to prevent "jumping" graph
-                skipFirstSample = true;
+            if (testForSkip) { //to prevent "jumping" graph
+                testForSkip = false;
                 var timestamp = Toybox.Time.Gregorian.info(item.when, Time.FORMAT_SHORT);
                 if (timestamp.min % 2 == 0) {
                     item = iterator.next();
@@ -800,12 +792,12 @@ class SmartArcsHrView extends WatchUi.WatchFace {
                 countNull++;
             }
 
-            // If we've collected enough values for batch processing
+            //if we've collected enough values for batch processing
             if ((count + countNull) == batchSize) {
                 if (countNull == batchSize) {
                     processedValues.add(null);
                 } else {
-                    processedValues.add(currentSum / count); // Store the averaged value
+                    processedValues.add(currentSum / count); //average HR value
                 }
                 currentSum = 0;
                 count = 0;
@@ -815,18 +807,17 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             item = iterator.next();
         }
 
-        // Handle any remaining values that didn't form a complete group
+        //handle any remaining values that didn't form a complete group
         if (count > 0) {
-            var averageValue = currentSum / count;
-            processedValues.add(averageValue);
+            processedValues.add(currentSum / count);
         }
 
         return processedValues;
     }
 
-    function drawHrLegend(dc, x, y, graphHeight) {
+    function drawHrLegend(dc, x, y) {
         var xPos = x + recalculateCoordinate(8);
-        var yPos = recalculateCoordinate(y + 15) + graphHeight;
+        var yPos = y + recalculateCoordinate(16);
 
         dc.setColor(graph60Color, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xPos, yPos, Graphics.FONT_XTINY, "60", Graphics.TEXT_JUSTIFY_LEFT);
