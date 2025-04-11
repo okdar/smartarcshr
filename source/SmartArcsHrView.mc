@@ -46,6 +46,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var deviceSettings;
     var powerSaverDrawn = false;
     var sunArcsOffset;
+    var lastPhoneConnectedTime;
 
     //global variables for pre-computation
     var screenWidth;
@@ -173,6 +174,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         if (powerSaverDrawn && shouldPowerSave()) {
             //should be screen refreshed in given intervals?
             if (powerSaverRefreshInterval == offSettingFlag || !(clockTime.min % powerSaverRefreshInterval == 0)) {
+                drawBackground(dc);
+                drawPowerSaverIcon(dc);
                 return;
             }
         }
@@ -198,6 +201,13 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         } else {
             targetDc = dc;
         }
+
+        // if (deviceSettings.phoneConnected) {
+        //     lastPhoneConnectedTime = Time.now();
+        // } else if (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > 130) {
+        //     drawLostAndFound(targetDc);
+        //     return;
+        // }
 
         //clear the screen
         targetDc.setColor(bgColor, Graphics.COLOR_TRANSPARENT);
@@ -604,7 +614,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     function drawBackground(dc) {
         //If we have an offscreen buffer that has been written to
         //draw it to the screen.
-        if( null != offscreenBuffer ) {
+        if (offscreenBuffer != null) {
             dc.drawBitmap(0, 0, offscreenBuffer);
         }
     }
@@ -882,20 +892,20 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     function shouldPowerSave() {
         if (powerSaver && !isAwake) {
-        var refreshDisplay = true;
-        var time = System.getClockTime();
-        var timeMinOfDay = (time.hour * 60) + time.min;
-        
-        if (startPowerSaverMin <= endPowerSaverMin) {
-        	if ((startPowerSaverMin <= timeMinOfDay) && (timeMinOfDay < endPowerSaverMin)) {
-        		refreshDisplay = false;
-        	}
-        } else {
-        	if ((startPowerSaverMin <= timeMinOfDay) || (timeMinOfDay < endPowerSaverMin)) {
-        		refreshDisplay = false;
-        	}        
-        }
-        return !refreshDisplay;
+            var refreshDisplay = true;
+            var time = System.getClockTime();
+            var timeMinOfDay = (time.hour * 60) + time.min;
+            
+            if (startPowerSaverMin <= endPowerSaverMin) {
+                if ((startPowerSaverMin <= timeMinOfDay) && (timeMinOfDay < endPowerSaverMin)) {
+                    refreshDisplay = false;
+                }
+            } else {
+                if ((startPowerSaverMin <= timeMinOfDay) || (timeMinOfDay < endPowerSaverMin)) {
+                    refreshDisplay = false;
+                }        
+            }
+            return !refreshDisplay;
         } else {
             return false;
         }
@@ -917,6 +927,11 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         dc.fillRectangle(screenRadius - (recalculateCoordinate(10) * powerSaverIconRatio), screenRadius - (recalculateCoordinate(20) * powerSaverIconRatio), recalculateCoordinate(20) * powerSaverIconRatio, recalculateCoordinate(45) * powerSaverIconRatio);
 
         powerSaverDrawn = true;
+    }
+
+    function drawLostAndFound(dc) {
+        dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(screenRadius, screenRadius, 50);
     }
 
 	function computeSunConstants() {
