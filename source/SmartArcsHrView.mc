@@ -24,7 +24,6 @@ using Toybox.SensorHistory;
 using Toybox.System;
 using Toybox.Time;
 using Toybox.Time.Gregorian;
-//using Toybox.UserProfile;
 using Toybox.WatchUi;
 
 class SmartArcsHrView extends WatchUi.WatchFace {
@@ -60,7 +59,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var halfHRTextWidth;
     var startPowerSaverMin;
     var endPowerSaverMin;
-    var powerSaverIconRatio;
 	var sunriseStartAngle = 0;
 	var sunriseEndAngle = 0;
 	var sunsetStartAngle = 0;
@@ -106,7 +104,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var graphStyle;
     var powerSaver;
     var powerSaverRefreshInterval;
-    var powerSaverIconColor;
     var sunriseColor;
     var sunsetColor;
 
@@ -170,16 +167,43 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     function onUpdate(dc) {
         var clockTime = System.getClockTime();
 
-		//refresh whole screen before drawing power saver icon
-        if (powerSaverDrawn && shouldPowerSave()) {
-            //should be screen refreshed in given intervals?
-            if (powerSaverRefreshInterval == offSettingFlag || !(clockTime.min % powerSaverRefreshInterval == 0)) {
-                drawBackground(dc);
-                drawPowerSaverIcon(dc);
-                return;
+        //check power saver state
+        if (shouldPowerSave()) {
+            //if already in power saver mode, check if we need to refresh
+            if (powerSaverDrawn) {
+                //only refresh at specified intervals or if first time
+                if (powerSaverRefreshInterval == offSettingFlag || !(clockTime.min % powerSaverRefreshInterval == 0)) {
+                    //preserve current screen state
+                    drawBackground(dc);
+                    return;
+                }
             }
+
+            //update power saver display
+            var targetDc;
+            if (offscreenBuffer != null) {
+                //if we have an offscreen buffer that we are using to draw the background,
+                //set the draw context of that buffer as our target.
+                targetDc = offscreenBuffer.getDc();
+                dc.clearClip();
+            } else {
+                targetDc = dc;
+            }
+
+            //clear screen and draw minimal display
+            targetDc.setColor(bgColor, Graphics.COLOR_TRANSPARENT);
+            targetDc.fillCircle(screenRadius, screenRadius, screenRadius + 2);
+            drawHands(targetDc, clockTime);
+
+            //update screen
+           drawBackground(dc);
+
+            //update state
+            powerSaverDrawn = true;
+            return;
         }
 
+        //regular update path
         powerSaverDrawn = false;
 
         deviceSettings = System.getDeviceSettings();
@@ -192,7 +216,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         //we always want to refresh the full screen when we get a regular onUpdate call.
         fullScreenRefresh = true;
 
-        var targetDc = null;
+        var targetDc;
         if (offscreenBuffer != null) {
             //if we have an offscreen buffer that we are using to draw the background,
             //set the draw context of that buffer as our target.
@@ -278,11 +302,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         //output the offscreen buffers to the main display if required.
         drawBackground(dc);
 
-        if (shouldPowerSave()) {
-            drawPowerSaverIcon(dc);
-            return;
-        }
-
         if (partialUpdatesAllowed && hrColor != offSettingFlag) {
             onPartialUpdate(dc);
         }
@@ -297,6 +316,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     //the user has just looked at their watch. Timers and animations may be started here.
     function onExitSleep() {
+        requestUpdate();
         isAwake = true;
     }
 
@@ -366,21 +386,12 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         var power = app.getProperty("powerSaver");
 		powerSaverRefreshInterval = app.getProperty("powerSaverRefreshInterval");
-		powerSaverIconColor = app.getProperty("powerSaverIconColor");
         if (power == 1) {
         	powerSaver = false;
     	} else {
     		powerSaver = true;
-            var powerSaverBeginning;
-            var powerSaverEnd;
-            if (power == 2) {
-                powerSaverBeginning = app.getProperty("powerSaverBeginning");
-                powerSaverEnd = app.getProperty("powerSaverEnd");
-            } else {
-                powerSaverBeginning = "00:00";
-                powerSaverEnd = "23:59";
-                powerSaverRefreshInterval = -999;
-            }
+            var powerSaverBeginning = app.getProperty("powerSaverBeginning");
+            var powerSaverEnd = app.getProperty("powerSaverEnd");
             startPowerSaverMin = parsePowerSaverTime(powerSaverBeginning);
             if (startPowerSaverMin == -1) {
                 powerSaver = false;
@@ -413,12 +424,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         minuteHandLength = recalculateCoordinate(90);
         handsTailLength = recalculateCoordinate(15);
         
-        if (powerSaverRefreshInterval == offSettingFlag) {
-            powerSaverIconRatio = 1.0; //big icon
-        } else {
-            powerSaverIconRatio = 0.6; //small icon
-        }
-
         if (!((ticksColor == offSettingFlag) ||
             (ticksColor != offSettingFlag && ticks1MinWidth == 0 && ticks5MinWidth == 0 && ticks15MinWidth == 0))) {
             //array of ticks coordinates
@@ -572,8 +577,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     function onPartialUpdate(dc) {
 		//refresh whole screen before drawing power saver icon
         if (powerSaverDrawn && shouldPowerSave()) {
-    		return;
-    	}
+            return;
+        }
 
         powerSaverDrawn = false;
 
@@ -609,8 +614,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     //Draw the watch face background
     //onUpdate uses this method to transfer newly rendered Buffered Bitmaps
     //to the main display.
-    //onPartialUpdate uses this to blank the second hand from the previous
-    //second before outputing the new one.
     function drawBackground(dc) {
         //If we have an offscreen buffer that has been written to
         //draw it to the screen.
@@ -891,42 +894,20 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function shouldPowerSave() {
-        if (powerSaver && !isAwake) {
-            var refreshDisplay = true;
-            var time = System.getClockTime();
-            var timeMinOfDay = (time.hour * 60) + time.min;
-            
-            if (startPowerSaverMin <= endPowerSaverMin) {
-                if ((startPowerSaverMin <= timeMinOfDay) && (timeMinOfDay < endPowerSaverMin)) {
-                    refreshDisplay = false;
-                }
-            } else {
-                if ((startPowerSaverMin <= timeMinOfDay) || (timeMinOfDay < endPowerSaverMin)) {
-                    refreshDisplay = false;
-                }        
-            }
-            return !refreshDisplay;
-        } else {
+        if (!powerSaver || isAwake) {
             return false;
         }
-    }
 
-    function drawPowerSaverIcon(dc) {
-        dc.setColor(handsColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(screenRadius, screenRadius, recalculateCoordinate(45) * powerSaverIconRatio);
-        dc.setColor(bgColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(screenRadius, screenRadius, recalculateCoordinate(40) * powerSaverIconRatio);
-        dc.setColor(handsColor, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(screenRadius - (recalculateCoordinate(13) * powerSaverIconRatio), screenRadius - (recalculateCoordinate(23) * powerSaverIconRatio), recalculateCoordinate(26) * powerSaverIconRatio, recalculateCoordinate(51) * powerSaverIconRatio);
-        dc.fillRectangle(screenRadius - (recalculateCoordinate(4) * powerSaverIconRatio), screenRadius - (recalculateCoordinate(27) * powerSaverIconRatio), recalculateCoordinate(8) * powerSaverIconRatio, recalculateCoordinate(5) * powerSaverIconRatio);
-        if (oneColor == offSettingFlag) {
-            dc.setColor(powerSaverIconColor, Graphics.COLOR_TRANSPARENT);
+        var time = System.getClockTime();
+        var timeMinOfDay = (time.hour * 60) + time.min;        
+        //check if we're in power saver time window
+        var inPowerSaverWindow = false;
+        if (startPowerSaverMin <= endPowerSaverMin) {
+            inPowerSaverWindow = (startPowerSaverMin <= timeMinOfDay && timeMinOfDay < endPowerSaverMin);
         } else {
-            dc.setColor(oneColor, Graphics.COLOR_TRANSPARENT);
+            inPowerSaverWindow = (startPowerSaverMin <= timeMinOfDay || timeMinOfDay < endPowerSaverMin);
         }
-        dc.fillRectangle(screenRadius - (recalculateCoordinate(10) * powerSaverIconRatio), screenRadius - (recalculateCoordinate(20) * powerSaverIconRatio), recalculateCoordinate(20) * powerSaverIconRatio, recalculateCoordinate(45) * powerSaverIconRatio);
-
-        powerSaverDrawn = true;
+        return inPowerSaverWindow;
     }
 
     function drawLostAndFound(dc) {
