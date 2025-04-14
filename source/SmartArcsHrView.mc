@@ -426,7 +426,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         showLostAndFound = Application.getApp().getProperty("showLostAndFound");
         if (showLostAndFound != offSettingFlag) {
-            showLostAndFound *= 60;
+            showLostAndFound *= 3600;
         }
         phone = Application.getApp().getProperty("phone");
         email = Application.getApp().getProperty("email");
