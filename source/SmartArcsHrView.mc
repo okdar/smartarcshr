@@ -440,9 +440,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     //pre-compute values which don't need to be computed on each update
     function computeConstants() {
-        // genericZoneInfo = UserProfile.getHeartRateZones(UserProfile.HR_ZONE_SPORT_GENERIC);
-        // System.print(genericZoneInfo);
-
         //computes hand lenght for watches with different screen resolution than 260x260
         screenResolutionRatio = screenRadius / 130.0; //130.0 = half of vivoactive4 resolution; used for coordinates recalculation
         hourHandLength = recalculateCoordinate(60);
