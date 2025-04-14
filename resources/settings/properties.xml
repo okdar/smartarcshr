@@ -68,6 +68,10 @@
         <property id="powerSaverBeginning" type="string">22:00</property>
         <property id="powerSaverEnd" type="string">6:00</property>
         <property id="powerSaverRefreshInterval" type="number">5</property>
+
+        <property id="showLostAndFound" type="number">-999</property>
+        <property id="phone" type="string"></property>
+        <property id="email" type="string"></property>
     </properties>
 
     <strings>
@@ -209,6 +213,17 @@
         <string id="powerSaver5">5</string>
         <string id="powerSaver10">10</string>
         <string id="powerSaver15">15</string>
+
+        <string id="showLostAndFound">Show 'Lost and Found' message after (hours)</string>
+		<string id="lostAndFoundNever">Never</string>
+		<string id="lostAndFound1">1</string>
+        <string id="lostAndFound2">2</string>
+        <string id="lostAndFound3">3</string>
+        <string id="lostAndFound6">6</string>
+        <string id="lostAndFound12">12</string>
+        <string id="lostAndFound24">24</string>
+        <string id="phone">Phone number</string>
+        <string id="email">Email</string>
     </strings>
 
     <settings>
@@ -2010,6 +2025,26 @@
 	            <listEntry value="15">@Strings.powerSaver15</listEntry>
 	        </settingConfig>
 	    </setting>
+    </settings>
+
+	<settings>
+	    <setting propertyKey="@Properties.showLostAndFound" title="@Strings.showLostAndFound">
+	        <settingConfig type="list">
+	            <listEntry value="-999">@Strings.lostAndFoundNever</listEntry>
+	            <listEntry value="1">@Strings.lostAndFound1</listEntry>
+	            <listEntry value="2">@Strings.lostAndFound2</listEntry>
+	            <listEntry value="3">@Strings.lostAndFound3</listEntry>
+	            <listEntry value="6">@Strings.lostAndFound6</listEntry>
+	            <listEntry value="12">@Strings.lostAndFound12</listEntry>
+	            <listEntry value="24">@Strings.lostAndFound24</listEntry>
+	        </settingConfig>
+	    </setting>
+        <setting propertyKey="@Properties.phone" title="@Strings.phone">
+            <settingConfig type="alphaNumeric"/>
+        </setting>
+        <setting propertyKey="@Properties.email" title="@Strings.email">
+            <settingConfig type="alphaNumeric"/>
+        </setting>
     </settings>
 
 </resources>

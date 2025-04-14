@@ -41,7 +41,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var offscreenBuffer;
     var offSettingFlag = -999;
     var font;
-    var lastMeasuredHR;
     var deviceSettings;
     var powerSaverDrawn = false;
     var sunArcsOffset;
@@ -106,6 +105,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var powerSaverRefreshInterval;
     var sunriseColor;
     var sunsetColor;
+    var showLostAndFound;
+    var phone;
+    var email;
 
     enum { // graph style
         LINE = 1,
@@ -165,6 +167,31 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     //update the view
     function onUpdate(dc) {
+        deviceSettings = System.getDeviceSettings();
+        if (showLostAndFound != offSettingFlag) {
+            if (deviceSettings.phoneConnected) {
+                lastPhoneConnectedTime = Time.now();
+            } else if (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > showLostAndFound) {
+                //update power saver display
+                var targetDc;
+                if (offscreenBuffer != null) {
+                    //if we have an offscreen buffer that we are using to draw the background,
+                    //set the draw context of that buffer as our target.
+                    targetDc = offscreenBuffer.getDc();
+                    dc.clearClip();
+                } else {
+                    targetDc = dc;
+                }
+
+                drawLostAndFound(targetDc);
+
+                //update screen
+                drawBackground(dc);
+
+                return;
+            }
+        }
+        
         var clockTime = System.getClockTime();
 
         //check power saver state
@@ -206,8 +233,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         //regular update path
         powerSaverDrawn = false;
 
-        deviceSettings = System.getDeviceSettings();
-
 		if (clockTime.min == 0) {
             //recompute sunrise/sunset constants every hour - to address new location when traveling	
 			computeSunConstants();
@@ -225,13 +250,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         } else {
             targetDc = dc;
         }
-
-        // if (deviceSettings.phoneConnected) {
-        //     lastPhoneConnectedTime = Time.now();
-        // } else if (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > 130) {
-        //     drawLostAndFound(targetDc);
-        //     return;
-        // }
 
         //clear the screen
         targetDc.setColor(bgColor, Graphics.COLOR_TRANSPARENT);
@@ -406,6 +424,13 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 		locationLatitude = app.getProperty("locationLatitude");
 		locationLongitude = app.getProperty("locationLongitude");
 
+        showLostAndFound = Application.getApp().getProperty("showLostAndFound");
+        if (showLostAndFound != offSettingFlag) {
+            showLostAndFound *= 60;
+        }
+        phone = Application.getApp().getProperty("phone");
+        email = Application.getApp().getProperty("email");
+
         //ensure that screen will be refreshed when settings are changed 
     	powerSaverDrawn = false;
         
@@ -575,35 +600,31 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     //Handle the partial update event
     function onPartialUpdate(dc) {
-		//refresh whole screen before drawing power saver icon
-        if (powerSaverDrawn && shouldPowerSave()) {
+        if ((showLostAndFound != offSettingFlag && 
+                (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > showLostAndFound)) ||
+                (powerSaverDrawn && shouldPowerSave())) {
             return;
         }
 
         powerSaverDrawn = false;
-
-        var refreshHR = false;
         var clockSeconds = System.getClockTime().sec;
 
         //should be HR refreshed?
-        if (hrColor != offSettingFlag) {
-            if (hrRefreshInterval == 1) {
-                refreshHR = true;
-            } else if (clockSeconds % hrRefreshInterval == 0) {
-                refreshHR = true;
-            }
+        var refreshHR = (hrColor != offSettingFlag) && 
+            (hrRefreshInterval == 1 || clockSeconds % hrRefreshInterval == 0);
+
+        if (!refreshHR && fullScreenRefresh) {
+            return;
         }
 
-        //if we're not doing a full screen refresh we need to re-draw the background
-        //before drawing the updated second hand position. Note this will only re-draw
-        //the background in the area specified by the previously computed clipping region.
+        //only redraw background in clipped area if not doing full refresh
         if(!fullScreenRefresh) {
             drawBackground(dc);
         }
 
         //draw HR
-        if (hrColor != offSettingFlag) {
-            drawHR(dc, refreshHR);
+        if (refreshHR) {
+            drawHR(dc, true);
         }
         
         if (shouldPowerSave()) {
@@ -652,31 +673,16 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawHR(dc, refreshHR) {
-        var hr = 0;
-        var hrText;
-        var activityInfo;
+        var activityInfo = Activity.getActivityInfo();
+        var hr = (activityInfo != null) ? activityInfo.currentHeartRate : null;
+        // lastMeasuredHR = hr;
 
-        if (refreshHR) {
-            activityInfo = Activity.getActivityInfo();
-            if (activityInfo != null) {
-                hr = activityInfo.currentHeartRate;
-                lastMeasuredHR = hr;
-            }
-        } else {
-            hr = lastMeasuredHR;
-        }
-
-        if (hr == null || hr == 0) {
-            hrText = "";
-        } else {
-            hrText = hr.format("%i");
-        }
+        var hrText = (hr != null && hr != 0) ? hr.format("%i") : "";
 
         dc.setClip(screenRadius - halfHRTextWidth, recalculateCoordinate(30), hrTextDimension[0], hrTextDimension[1]);
-
         dc.setColor(hrColor, Graphics.COLOR_TRANSPARENT);
-        //debug rectangle
-        //dc.drawRectangle(screenRadius - halfHRTextWidth, recalculateCoordinate(30), hrTextDimension[0], hrTextDimension[1]);
+        // //debug rectangle
+        // //dc.drawRectangle(screenRadius - halfHRTextWidth, recalculateCoordinate(30), hrTextDimension[0], hrTextDimension[1]);
         dc.drawText(screenRadius, recalculateCoordinate(25), font, hrText, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -911,8 +917,30 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawLostAndFound(dc) {
-        dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(screenRadius, screenRadius, 50);
+        //clean the screen
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillCircle(screenRadius, screenRadius, screenRadius + 2);
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        drawMessage(dc, "If found, contact:", screenRadius, recalculateCoordinate(45), recalculateCoordinate(230));
+        drawMessage(dc, phone, screenRadius, recalculateCoordinate(105), recalculateCoordinate(260));
+        drawMessage(dc, email, screenRadius, recalculateCoordinate(138), recalculateCoordinate(260));
+        drawMessage(dc, "Thank you!", screenRadius, recalculateCoordinate(195), recalculateCoordinate(220));
+    }
+
+    function drawMessage(dc, msg, screenRadius, posY, width) {
+        var font = Graphics.FONT_SMALL;
+        var textDimension = dc.getTextDimensions(msg, font);
+
+        if (textDimension[0] > width) {
+            font = Graphics.FONT_TINY;
+            textDimension = dc.getTextDimensions(msg, font);
+            if (textDimension[0] > width) {
+                font = Graphics.FONT_XTINY;
+            }
+        }
+
+        dc.drawText(screenRadius, posY, font, msg, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
 	function computeSunConstants() {
