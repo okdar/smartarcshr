@@ -41,6 +41,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var offscreenBuffer;
     var offSettingFlag = -999;
     var font;
+    var lastMeasuredHR;
     var deviceSettings;
     var powerSaverDrawn = false;
     var sunArcsOffset;
@@ -168,10 +169,10 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     //update the view
     function onUpdate(dc) {
         deviceSettings = System.getDeviceSettings();
-        if (showLostAndFound != offSettingFlag) {
-            if (deviceSettings.phoneConnected) {
-                lastPhoneConnectedTime = Time.now();
-            } else if (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > showLostAndFound) {
+        if (deviceSettings.phoneConnected) {
+            lastPhoneConnectedTime = Time.now();
+        } else if (showLostAndFound != offSettingFlag &&
+                    (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > showLostAndFound)) {
                 //update power saver display
                 var targetDc;
                 if (offscreenBuffer != null) {
@@ -189,7 +190,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
                 drawBackground(dc);
 
                 return;
-            }
         }
         
         var clockTime = System.getClockTime();
@@ -604,26 +604,31 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         }
 
         powerSaverDrawn = false;
+
+        var refreshHR = false;
         var clockSeconds = System.getClockTime().sec;
 
         //should be HR refreshed?
-        var refreshHR = (hrColor != offSettingFlag) && 
-            (hrRefreshInterval == 1 || clockSeconds % hrRefreshInterval == 0);
-
-        if (!refreshHR && fullScreenRefresh) {
-            return;
+        if (hrColor != offSettingFlag) {
+            if (hrRefreshInterval == 1) {
+                refreshHR = true;
+            } else if (clockSeconds % hrRefreshInterval == 0) {
+                refreshHR = true;
+            }
         }
 
-        //only redraw background in clipped area if not doing full refresh
+        //if we're not doing a full screen refresh we need to re-draw the background
+        //before drawing the updated second hand position. Note this will only re-draw
+        //the background in the area specified by the previously computed clipping region.
         if(!fullScreenRefresh) {
             drawBackground(dc);
         }
 
         //draw HR
-        if (refreshHR) {
-            drawHR(dc, true);
+        if (hrColor != offSettingFlag) {
+            drawHR(dc, refreshHR);
         }
-        
+
         if (shouldPowerSave()) {
             requestUpdate();
         }
@@ -670,16 +675,31 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawHR(dc, refreshHR) {
-        var activityInfo = Activity.getActivityInfo();
-        var hr = (activityInfo != null) ? activityInfo.currentHeartRate : null;
-        // lastMeasuredHR = hr;
+        var hr = 0;
+        var hrText;
+        var activityInfo;
 
-        var hrText = (hr != null && hr != 0) ? hr.format("%i") : "";
+        if (refreshHR) {
+            activityInfo = Activity.getActivityInfo();
+            if (activityInfo != null) {
+                hr = activityInfo.currentHeartRate;
+                lastMeasuredHR = hr;
+            }
+        } else {
+            hr = lastMeasuredHR;
+        }
+
+        if (hr == null || hr == 0) {
+            hrText = "";
+        } else {
+            hrText = hr.format("%i");
+        }
 
         dc.setClip(screenRadius - halfHRTextWidth, recalculateCoordinate(30), hrTextDimension[0], hrTextDimension[1]);
+
         dc.setColor(hrColor, Graphics.COLOR_TRANSPARENT);
-        // //debug rectangle
-        // //dc.drawRectangle(screenRadius - halfHRTextWidth, recalculateCoordinate(30), hrTextDimension[0], hrTextDimension[1]);
+        //debug rectangle
+        //dc.drawRectangle(screenRadius - halfHRTextWidth, recalculateCoordinate(30), hrTextDimension[0], hrTextDimension[1]);
         dc.drawText(screenRadius, recalculateCoordinate(25), font, hrText, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
