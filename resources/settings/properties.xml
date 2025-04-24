@@ -72,6 +72,7 @@
         <property id="showLostAndFound" type="number">-999</property>
         <property id="phone" type="string"></property>
         <property id="email" type="string"></property>
+        <property id="lastPhoneConnectedTime" type="number">-999</property>
     </properties>
 
     <strings>

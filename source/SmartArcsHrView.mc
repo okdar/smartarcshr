@@ -168,9 +168,14 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     //update the view
     function onUpdate(dc) {
+        var clockTime = System.getClockTime();
+
         deviceSettings = System.getDeviceSettings();
         if (deviceSettings.phoneConnected) {
             lastPhoneConnectedTime = Time.now();
+            if (clockTime.min % 10 == 0) {
+                Application.getApp().setProperty("lastPhoneConnectedTime", lastPhoneConnectedTime.value());
+            }
         } else if (showLostAndFound != offSettingFlag &&
                     (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > showLostAndFound)) {
                 //update power saver display
@@ -192,8 +197,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
                 return;
         }
         
-        var clockTime = System.getClockTime();
-
         //check power saver state
         if (shouldPowerSave()) {
             //if already in power saver mode, check if we need to refresh
@@ -424,12 +427,17 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 		locationLatitude = app.getProperty("locationLatitude");
 		locationLongitude = app.getProperty("locationLongitude");
 
-        showLostAndFound = Application.getApp().getProperty("showLostAndFound");
+        showLostAndFound = app.getProperty("showLostAndFound");
         if (showLostAndFound != offSettingFlag) {
             showLostAndFound *= 3600;
         }
-        phone = Application.getApp().getProperty("phone");
-        email = Application.getApp().getProperty("email");
+        phone = app.getProperty("phone");
+        email = app.getProperty("email");
+        if (app.getProperty("lastPhoneConnectedTime") == -999) {
+            lastPhoneConnectedTime = null;
+        } else {
+            lastPhoneConnectedTime = new Time.Moment(app.getProperty("lastPhoneConnectedTime"));
+        }
 
         //ensure that screen will be refreshed when settings are changed 
     	powerSaverDrawn = false;
