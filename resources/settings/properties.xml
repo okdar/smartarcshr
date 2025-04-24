@@ -19,6 +19,8 @@
 <resources>
 
     <properties>
+        <property id="userGuide" type="string">https://okdar.github.io/smartarcs/</property>
+
         <property id="bgColor" type="number">0x000000</property>
         <property id="ticksColor" type="number">0xFFFFFF</property>
         <property id="ticks1MinWidth" type="number">0</property>
@@ -76,6 +78,8 @@
     </properties>
 
     <strings>
+        <string id="userGuide">SmartArcs HR user guide:</string>
+
         <string id="bgColor">Background color</string>
         <string id="ticksColor">Ticks color (off or color)</string>
         <string id="ticks1MinWidth">1-minute ticks width</string>
@@ -228,6 +232,10 @@
     </strings>
 
     <settings>
+		<setting propertyKey="@Properties.userGuide" title="@Strings.userGuide">
+			<settingConfig type="alphaNumeric" readonly="true" />
+		</setting>
+
         <setting propertyKey="@Properties.bgColor" title="@Strings.bgColor">
             <settingConfig type="list">
                 <listEntry value="0xFFFFFF">@Strings.white</listEntry>
