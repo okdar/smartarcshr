@@ -887,7 +887,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         } else if (value <= 80) {
             return graph80Color; // 71-80
         } else if (value <= 90) {
-            return graph90Color; // true yellow, 81-90
+            return graph90Color; // 81-90
         } else if (value <= 100) {
             return graph100Color; // 91-100
         } else if (value <= 110) {
