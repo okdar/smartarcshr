@@ -47,6 +47,12 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var sunArcsOffset;
     var lastPhoneConnectedTime;
 
+    var hrCache = null;
+    var updated = null;
+    var minHr;
+    var maxHr;
+    var lastOddMinHr = null;
+
     //global variables for pre-computation
     var screenWidth;
     var screenRadius;
@@ -169,6 +175,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     //update the view
     function onUpdate(dc) {
         var clockTime = System.getClockTime();
+
+        //cache HR values for graph
+        updateHrCache(clockTime, Activity.getActivityInfo());
 
         deviceSettings = System.getDeviceSettings();
         if (deviceSettings.phoneConnected) {
@@ -310,7 +319,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             drawTicks(targetDc);
         }
 
-        if (hasHeartRateHistory) {
+        if (hasHeartRateHistory && minHr != 0 && maxHr != 0) {
             drawHrGraph(targetDc, 5);
         }
 
@@ -466,6 +475,18 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         dateAt6Y = screenWidth - Graphics.getFontHeight(font) - recalculateCoordinate(30);
         dateInfo = Gregorian.info(Time.today(), Time.FORMAT_MEDIUM);
+
+        //populate HR cache
+        var hrIterator = SensorHistory.getHeartRateHistory({});
+        minHr = hrIterator.getMin();
+        maxHr = hrIterator.getMax();
+        if (minHr == null || maxHr == null || heartRateNumberOfSamples == 0) {
+            minHr = 0;
+            maxHr = 0;
+            hrCache = new [180];
+        } else {
+            hrCache = processHrIterator(hrIterator, heartRateNumberOfSamples);
+        }
     }
 
     function parsePowerSaverTime(time) {
@@ -712,30 +733,22 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawHrGraph(dc, minimalRange) {
-        var hrIterator = SensorHistory.getHeartRateHistory({});
-        var minVal = hrIterator.getMin();
-        var maxVal = hrIterator.getMax();
-        if (minVal == null || maxVal == null || heartRateNumberOfSamples == 0) {
-            return;
-        }
-
         var graphTextHeight = dc.getTextDimensions("8", Graphics.FONT_XTINY)[1]; //font height
 
         var leftX = recalculateCoordinate(40); // 40 pixels from screen border
         var graphHeight = recalculateCoordinate(80); // fixed height of the graph
         var graphTopY = recalculateCoordinate(76);
-        var graphBottomY = graphTopY + graphHeight;
+        var graphBottomY = graphTopY + graphHeight + 1;
 
-        var range = maxVal - minVal;
+        updateMinMaxHr();
+
+        var range = maxHr - minHr;
         if (range < minimalRange) {
-            var avg = (minVal + maxVal) / 2.0;
-            minVal = avg - (minimalRange / 2.0);
-            maxVal = avg + (minimalRange / 2.0);
             range = minimalRange;
         }
 
-        var minValStr = minVal.format("%.0f");
-        var maxValStr = maxVal.format("%.0f");
+        var minValStr = minHr.format("%.0f");
+        var maxValStr = maxHr.format("%.0f");
 
         //draw min and max values
         dc.setColor(graphBordersColor, Graphics.COLOR_TRANSPARENT);
@@ -750,13 +763,12 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var y1 = null;
         var x2 = null;
         var y2 = null;
-        var values = processHrIterator(hrIterator, heartRateNumberOfSamples);
         dc.setPenWidth(graphLineWidth);
-        for (var i = 0; i < values.size(); i++)  {
+        for (var i = 0; i < hrCache.size(); i++)  {
             x1 = screenWidth - recalculateCoordinate(40 + i).toNumber();
-            if (values[i] != null) {
-                y1 = graphBottomY - ((recalculateCoordinate(values[i]) / 1.0) - recalculateCoordinate(minVal)) / recalculateCoordinate(range) * graphHeight;
-                dc.setColor(getGraphLineColor(values[i]), Graphics.COLOR_TRANSPARENT);
+            if (hrCache[i] != null) {
+                y1 = graphBottomY - ((recalculateCoordinate(hrCache[i]) / 1.0) - recalculateCoordinate(minHr)) / recalculateCoordinate(range) * graphHeight;
+                dc.setColor(getGraphLineColor(hrCache[i]), Graphics.COLOR_TRANSPARENT);
                 if (graphStyle == AREA) {
                     dc.drawLine(x1, y1, x1, graphBottomY);
                 } else if (x2 != null && y2 != null) {
@@ -773,8 +785,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var last15Sum = 0;
         var count = 0;
         for (var i = 0; i < 15; i++)  {
-            if (values[i] != null) {
-                last15Sum += values[i];
+            if (hrCache[i] != null) {
+                last15Sum += hrCache[i];
                 count++;
             }
         }
@@ -786,7 +798,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             dc.setColor(getGraphLineColor(last15Avg), Graphics.COLOR_TRANSPARENT);
             dc.drawText(screenRadius, graphTopY - graphTextHeight - 2, Graphics.FONT_XTINY, last15Avg.format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
         }
-        
+
         //draw graph borders
         if (graphBordersColor != offSettingFlag) {
             var maxX = leftX + (dc.getTextDimensions(maxValStr, Graphics.FONT_XTINY))[0] + 5;
@@ -807,6 +819,54 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         }
 
         drawHrLegend(dc, leftX, graphBottomY);
+    }
+
+    function shiftHrCacheValues() {
+        for (var i = hrCache.size() - 1; i > 0; i--) {
+            hrCache[i] = hrCache[i-1];
+        }
+    }
+
+    function updateHrCache(clockTime, activityInfo) {
+        if (updated == clockTime.min) {
+            return;
+        }
+        
+        updated = clockTime.min;
+        var currentHr = (activityInfo != null) ? activityInfo.currentHeartRate : null;
+        
+        if (clockTime.min % 2 == 0) {
+            shiftHrCacheValues();
+            hrCache[0] = (lastOddMinHr != null && currentHr != null) ? 
+                (lastOddMinHr + currentHr) / 2.0 :
+                (lastOddMinHr != null ? lastOddMinHr : currentHr);
+        } else {
+            lastOddMinHr = currentHr;
+        }
+    }
+
+    function updateMinMaxHr() {
+        // Reset min/max
+        minHr = 999;
+        maxHr = 0;
+        
+        // Find new min/max in cache
+        for (var i = 0; i < hrCache.size(); i++) {
+            if (hrCache[i] != null) {
+                if (hrCache[i] < minHr) {
+                    minHr = hrCache[i];
+                }
+                if (hrCache[i] > maxHr) {
+                    maxHr = hrCache[i];
+                }
+            }
+        }
+        
+        // Reset if no valid values found
+        if (minHr == 999) {
+            minHr = 0;
+            maxHr = 0;
+        }
     }
 
     function processHrIterator(iterator, numberOfSamples) {
