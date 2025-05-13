@@ -1,3 +1,6 @@
+# 1.1.1 (May 13, 2025)
+* minor bugfix (drawDate)
+
 # 1.1.0 (May 11, 2025)
 * improved graph performance
 

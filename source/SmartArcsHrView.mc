@@ -72,7 +72,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 	var locationLatitude;
 	var locationLongitude;
     var dateAt6Y;
-    var dateInfo;
 
     //user settings
     var bgColor;
@@ -474,7 +473,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         heartRateNumberOfSamples = hasHeartRateHistory ? countSamples(SensorHistory.getHeartRateHistory({})) : 0;
 
         dateAt6Y = screenWidth - Graphics.getFontHeight(font) - recalculateCoordinate(30);
-        dateInfo = Gregorian.info(Time.today(), Time.FORMAT_MEDIUM);
 
         //populate HR cache
         var hrIterator = SensorHistory.getHeartRateHistory({});
@@ -968,6 +966,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
     function drawDate(dc) {
         var dateString = "";
+        var dateInfo = Gregorian.info(Time.today(), Time.FORMAT_MEDIUM);
         switch (dateFormat) {
             case 0: dateString = dateInfo.day;
                     break;
