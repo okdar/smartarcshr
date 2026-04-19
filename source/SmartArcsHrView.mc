@@ -725,29 +725,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         }
     }
 
-    //Compute a bounding box from the passed in points
-    function getBoundingBox(points) {
-        var min = [9999,9999];
-        var max = [0,0];
-
-        for (var i = 0; i < points.size(); ++i) {
-            if(points[i][0] < min[0]) {
-                min[0] = points[i][0];
-            }
-            if(points[i][1] < min[1]) {
-                min[1] = points[i][1];
-            }
-            if(points[i][0] > max[0]) {
-                max[0] = points[i][0];
-            }
-            if(points[i][1] > max[1]) {
-                max[1] = points[i][1];
-            }
-        }
-
-        return [min, max];
-    }
-
     //coordinates are optimized for 260x260 resolution (vivoactive4)
     //this method recalculates coordinates for watches with different resolution
     function recalculateCoordinate(coordinate) {
