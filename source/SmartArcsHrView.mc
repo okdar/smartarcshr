@@ -766,10 +766,11 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var y1 = null;
         var x2 = null;
         var y2 = null;
+        var hrVal;
         dc.setPenWidth(graphLineWidth);
         for (var i = 0; i < hrCacheSize; i++)  {
             x1 = screenWidth - recalculateCoordinate(40 + i).toNumber();
-            var hrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
+            hrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
             if (hrVal != null) {
                 y1 = graphBottomY - ((recalculateCoordinate(hrVal) / 1.0) - recalculateCoordinate(minHr)) / recalculateCoordinate(range) * graphHeight;
                 dc.setColor(getGraphLineColor(hrVal), Graphics.COLOR_TRANSPARENT);
@@ -788,10 +789,11 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         //compute last 15 samples average
         var last15Sum = 0;
         var count = 0;
+        var last15HrVal;
         for (var i = 0; i < 15; i++)  {
-            var hrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
-            if (hrVal != null) {
-                last15Sum += hrVal;
+            last15HrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
+            if (last15HrVal != null) {
+                last15Sum += last15HrVal;
                 count++;
             }
         }
@@ -865,8 +867,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         maxHr = 0;
         
         // Find new min/max in cache
+        var val;
         for (var i = 0; i < hrCacheSize; i++) {
-            var val = hrCache[(hrCacheHead + i) % hrCacheSize];
+            val = hrCache[(hrCacheHead + i) % hrCacheSize];
             if (val != null) {
                 if (val < minHr) {
                     minHr = val;
