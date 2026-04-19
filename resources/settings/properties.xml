@@ -104,7 +104,7 @@
 
         <string id="bluetoothColor">Bluetooth indicator color (off or color)</string>
 
-        <string id="dndColor">Do not disturb indicator color (off or color)</string>
+        <string id="dndColor">Do Not Disturb indicator color (off or color)</string>
 
         <string id="alarmColor">Alarm indicator color (off or color)</string>
 
