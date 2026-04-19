@@ -48,6 +48,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var lastPhoneConnectedTime;
 
     var hrCache = null;
+    var hrCacheHead = 0;
+    var hrCacheSize = 180;
     var updated = null;
     var minHr;
     var maxHr;
@@ -478,12 +480,16 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var hrIterator = SensorHistory.getHeartRateHistory({});
         minHr = hrIterator.getMin();
         maxHr = hrIterator.getMax();
+        hrCache = new [hrCacheSize];
+        hrCacheHead = 0;
         if (minHr == null || maxHr == null || heartRateNumberOfSamples == 0) {
             minHr = 0;
             maxHr = 0;
-            hrCache = new [180];
         } else {
-            hrCache = processHrIterator(hrIterator, heartRateNumberOfSamples);
+            var processed = processHrIterator(hrIterator, heartRateNumberOfSamples);
+            for (var i = 0; i < processed.size() && i < hrCacheSize; i++) {
+                hrCache[i] = processed[i];
+            }
         }
     }
 
@@ -762,11 +768,12 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var x2 = null;
         var y2 = null;
         dc.setPenWidth(graphLineWidth);
-        for (var i = 0; i < hrCache.size(); i++)  {
+        for (var i = 0; i < hrCacheSize; i++)  {
             x1 = screenWidth - recalculateCoordinate(40 + i).toNumber();
-            if (hrCache[i] != null) {
-                y1 = graphBottomY - ((recalculateCoordinate(hrCache[i]) / 1.0) - recalculateCoordinate(minHr)) / recalculateCoordinate(range) * graphHeight;
-                dc.setColor(getGraphLineColor(hrCache[i]), Graphics.COLOR_TRANSPARENT);
+            var hrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
+            if (hrVal != null) {
+                y1 = graphBottomY - ((recalculateCoordinate(hrVal) / 1.0) - recalculateCoordinate(minHr)) / recalculateCoordinate(range) * graphHeight;
+                dc.setColor(getGraphLineColor(hrVal), Graphics.COLOR_TRANSPARENT);
                 if (graphStyle == AREA) {
                     dc.drawLine(x1, y1, x1, graphBottomY);
                 } else if (x2 != null && y2 != null) {
@@ -783,8 +790,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var last15Sum = 0;
         var count = 0;
         for (var i = 0; i < 15; i++)  {
-            if (hrCache[i] != null) {
-                last15Sum += hrCache[i];
+            var hrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
+            if (hrVal != null) {
+                last15Sum += hrVal;
                 count++;
             }
         }
@@ -819,12 +827,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         drawHrLegend(dc, leftX, graphBottomY);
     }
 
-    function shiftHrCacheValues() {
-        for (var i = hrCache.size() - 1; i > 0; i--) {
-            hrCache[i] = hrCache[i-1];
-        }
-    }
-
     function updateHrCache(clockTime, activityInfo) {
         if (updated == clockTime.min) {
             return;
@@ -834,8 +836,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var currentHr = (activityInfo != null) ? activityInfo.currentHeartRate : null;
         
         if (clockTime.min % 2 == 0) {
-            shiftHrCacheValues();
-            hrCache[0] = (lastOddMinHr != null && currentHr != null) ? 
+            hrCacheHead = (hrCacheHead + hrCacheSize - 1) % hrCacheSize;
+            hrCache[hrCacheHead] = (lastOddMinHr != null && currentHr != null) ? 
                 (lastOddMinHr + currentHr) / 2.0 :
                 (lastOddMinHr != null ? lastOddMinHr : currentHr);
         } else {
@@ -849,13 +851,14 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         maxHr = 0;
         
         // Find new min/max in cache
-        for (var i = 0; i < hrCache.size(); i++) {
-            if (hrCache[i] != null) {
-                if (hrCache[i] < minHr) {
-                    minHr = hrCache[i];
+        for (var i = 0; i < hrCacheSize; i++) {
+            var val = hrCache[(hrCacheHead + i) % hrCacheSize];
+            if (val != null) {
+                if (val < minHr) {
+                    minHr = val;
                 }
-                if (hrCache[i] > maxHr) {
-                    maxHr = hrCache[i];
+                if (val > maxHr) {
+                    maxHr = val;
                 }
             }
         }
