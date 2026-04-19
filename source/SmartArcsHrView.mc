@@ -490,6 +490,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             for (var i = 0; i < processed.size() && i < hrCacheSize; i++) {
                 hrCache[i] = processed[i];
             }
+            updateMinMaxHr();
         }
     }
 
@@ -744,8 +745,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var graphTopY = recalculateCoordinate(76);
         var graphBottomY = graphTopY + graphHeight + 1;
 
-        updateMinMaxHr();
-
         var range = maxHr - minHr;
         if (range < minimalRange) {
             range = minimalRange;
@@ -836,10 +835,25 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         var currentHr = (activityInfo != null) ? activityInfo.currentHeartRate : null;
         
         if (clockTime.min % 2 == 0) {
-            hrCacheHead = (hrCacheHead + hrCacheSize - 1) % hrCacheSize;
+            var newHead = (hrCacheHead + hrCacheSize - 1) % hrCacheSize;
+            var evicted = hrCache[newHead];
+            hrCacheHead = newHead;
             hrCache[hrCacheHead] = (lastOddMinHr != null && currentHr != null) ? 
                 (lastOddMinHr + currentHr) / 2.0 :
                 (lastOddMinHr != null ? lastOddMinHr : currentHr);
+
+            //incremental min/max update
+            if (evicted != null && (evicted == minHr || evicted == maxHr)) {
+                //evicted value was an extreme, full rescan needed
+                updateMinMaxHr();
+            } else if (hrCache[hrCacheHead] != null) {
+                if (minHr == 0 || hrCache[hrCacheHead] < minHr) {
+                    minHr = hrCache[hrCacheHead];
+                }
+                if (hrCache[hrCacheHead] > maxHr) {
+                    maxHr = hrCache[hrCacheHead];
+                }
+            }
         } else {
             lastOddMinHr = currentHr;
         }
