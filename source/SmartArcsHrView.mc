@@ -833,24 +833,24 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             y2 = y1;
         }
 
-        //compute last 15 samples average
-        var last15Sum = 0;
+        //compute last 5 samples average (10 minutes, 1 sample per 2 min)
+        var last5Sum = 0;
         var count = 0;
-        var last15HrVal;
-        for (var i = 0; i < 15; i++)  {
-            last15HrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
-            if (last15HrVal != null) {
-                last15Sum += last15HrVal;
+        var last5HrVal;
+        for (var i = 0; i < 5; i++)  {
+            last5HrVal = hrCache[(hrCacheHead + i) % hrCacheSize];
+            if (last5HrVal != null) {
+                last5Sum += last5HrVal;
                 count++;
             }
         }
         if (count > 0) {
-            var last15Avg = last15Sum / count;
+            var last5Avg = last5Sum / count;
             dc.setColor(graphBgColor, Graphics.COLOR_TRANSPARENT);
-            var avgHrStrDim = dc.getTextDimensions(last15Avg.format("%.0f"), Graphics.FONT_XTINY);
+            var avgHrStrDim = dc.getTextDimensions(last5Avg.format("%.0f"), Graphics.FONT_XTINY);
             dc.fillRectangle(screenRadius - (avgHrStrDim[0] / 2) - 3, graphTopY - graphTextHeight - 2, avgHrStrDim[0] + 6, graphTextHeight); // for average HR
-            dc.setColor(getGraphLineColor(last15Avg), Graphics.COLOR_TRANSPARENT);
-            dc.drawText(screenRadius, graphTopY - graphTextHeight - 2, Graphics.FONT_XTINY, last15Avg.format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
+            dc.setColor(getGraphLineColor(last5Avg), Graphics.COLOR_TRANSPARENT);
+            dc.drawText(screenRadius, graphTopY - graphTextHeight - 2, Graphics.FONT_XTINY, last5Avg.format("%.0f"), Graphics.TEXT_JUSTIFY_CENTER);
         }
 
         //draw graph borders
