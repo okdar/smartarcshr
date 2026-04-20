@@ -46,6 +46,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var powerSaverDrawn = false;
     var sunArcsOffset;
     var lastPhoneConnectedTime;
+    var sunCalc;
 
     var hrCache = null;
     var hrCacheHead = 0;
@@ -90,7 +91,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var rc17;
     var rc20;
     var rc25;
-    var rc30;
     var rc40;
     var rc60;
     var rc76;
@@ -263,7 +263,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             drawHands(targetDc, clockTime);
 
             //update screen
-           drawBackground(dc);
+            drawBackground(dc);
 
             //update state
             powerSaverDrawn = true;
@@ -502,7 +502,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         rc17 = recalculateCoordinate(17);
         rc20 = recalculateCoordinate(20);
         rc25 = recalculateCoordinate(25);
-        rc30 = recalculateCoordinate(30);
         rc40 = recalculateCoordinate(40);
         rc60 = recalculateCoordinate(60);
         rc76 = recalculateCoordinate(76);
@@ -524,7 +523,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         heartRateNumberOfSamples = hasHeartRateHistory ? countSamples(SensorHistory.getHeartRateHistory({})) : 0;
 
-        dateAt6Y = screenWidth - Graphics.getFontHeight(font) - rc30;
+        dateAt6Y = screenWidth - Graphics.getFontHeight(font) - recalculateCoordinate(30);
 
         //populate HR cache
         var hrIterator = SensorHistory.getHeartRateHistory({});
@@ -755,11 +754,11 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             hrText = hr.format("%i");
         }
 
-        dc.setClip(screenRadius - halfHRTextWidth, rc30, hrTextDimension[0], hrTextDimension[1]);
+        dc.setClip(screenRadius - halfHRTextWidth, rc25, hrTextDimension[0], hrTextDimension[1] + rc5);
 
         dc.setColor(hrColor, Graphics.COLOR_TRANSPARENT);
         //debug rectangle
-        //dc.drawRectangle(screenRadius - halfHRTextWidth, rc30, hrTextDimension[0], hrTextDimension[1]);
+        //dc.drawRectangle(screenRadius - halfHRTextWidth, rc25, hrTextDimension[0], hrTextDimension[1] + rc5);
         dc.drawText(screenRadius, rc25, font, hrText, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
@@ -1060,31 +1059,35 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawMessage(dc, msg, screenRadius, posY, width) {
-        var font = Graphics.FONT_SMALL;
-        var textDimension = dc.getTextDimensions(msg, font);
+        var msgFont = Graphics.FONT_SMALL;
+        var textDimension = dc.getTextDimensions(msg, msgFont);
 
         if (textDimension[0] > width) {
-            font = Graphics.FONT_TINY;
-            textDimension = dc.getTextDimensions(msg, font);
+            msgFont = Graphics.FONT_TINY;
+            textDimension = dc.getTextDimensions(msg, msgFont);
             if (textDimension[0] > width) {
-                font = Graphics.FONT_XTINY;
+                msgFont = Graphics.FONT_XTINY;
             }
         }
 
-        dc.drawText(screenRadius, posY, font, msg, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(screenRadius, posY, msgFont, msg, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
 	function computeSunConstants() {
     	var posInfo = Toybox.Position.getInfo();
     	if (posInfo != null && posInfo.position != null) {
-	    	var sc = new SunCalc();
+	    	if (sunCalc == null) {
+	    		sunCalc = new SunCalc();
+	    	}
 	    	var time_now = Time.now();    	
 	    	var loc = posInfo.position.toRadians();
-    		var hasLocation = (loc[0].format("%.2f").equals("3.14") && loc[1].format("%.2f").equals("3.14")) || (loc[0] == 0 && loc[1] == 0) ? false : true;
+    		var hasLocation = !((loc[0] > 3.13 && loc[0] < 3.15 && loc[1] > 3.13 && loc[1] < 3.15) || (loc[0] == 0 && loc[1] == 0));
 
 	    	if (!hasLocation && locationLatitude != offSettingFlag) {
 	    		loc[0] = locationLatitude;
 	    		loc[1] = locationLongitude;
+	    	} else if (!hasLocation) {
+	    		return;
 	    	}
 
 	    	if (hasLocation) {
@@ -1094,10 +1097,20 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 				locationLongitude = loc[1];
 			}
 			
-	        sunriseStartAngle = computeSunAngle(sc.calculate(time_now, loc, SunCalc.DAWN));	        
-	        sunriseEndAngle = computeSunAngle(sc.calculate(time_now, loc, SunCalc.SUNRISE));
-	        sunsetStartAngle = computeSunAngle(sc.calculate(time_now, loc, SunCalc.SUNSET));
-	        sunsetEndAngle = computeSunAngle(sc.calculate(time_now, loc, SunCalc.DUSK));
+	        var dawn = sunCalc.calculate(time_now, loc, SunCalc.DAWN);
+	        var sunrise = sunCalc.calculate(time_now, loc, SunCalc.SUNRISE);
+	        var sunset = sunCalc.calculate(time_now, loc, SunCalc.SUNSET);
+	        var dusk = sunCalc.calculate(time_now, loc, SunCalc.DUSK);
+
+	        if (dawn == null || sunrise == null || sunset == null || dusk == null) {
+	            locationLatitude = offSettingFlag;
+	            return;
+	        }
+
+	        sunriseStartAngle = computeSunAngle(dawn);	        
+	        sunriseEndAngle = computeSunAngle(sunrise);
+	        sunsetStartAngle = computeSunAngle(sunset);
+	        sunsetEndAngle = computeSunAngle(dusk);
 
             if (((sunriseStartAngle < sunsetStartAngle) && (sunriseStartAngle > sunsetEndAngle)) ||
                     ((sunriseEndAngle < sunsetStartAngle) && (sunriseEndAngle > sunsetEndAngle)) ||
