@@ -47,6 +47,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     var sunArcsOffset;
     var lastPhoneConnectedTime;
     var sunCalc;
+    var cachedDateString;
+    var cachedDateValue = -1; //Time.today().value() the cached date string was built for
 
     var hrCache = null;
     var hrCacheHead = 0;
@@ -478,6 +480,9 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 
         //ensure that screen will be refreshed when settings are changed 
     	powerSaverDrawn = false;
+
+        //invalidate cached date so a changed date format is picked up
+        cachedDateValue = -1;
         
         computeConstants();
 		computeSunConstants();
@@ -1011,22 +1016,29 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function drawDate(dc) {
-        var dateString = "";
-        var dateInfo = Gregorian.info(Time.today(), Time.FORMAT_MEDIUM);
-        switch (dateFormat) {
-            case 0: dateString = dateInfo.day;
-                    break;
-            case 1: dateString = Lang.format("$1$ $2$", [dateInfo.day_of_week.substring(0, 3), dateInfo.day]);
-                    break;
-            case 2: dateString = Lang.format("$1$ $2$", [dateInfo.day, dateInfo.day_of_week.substring(0, 3)]);
-                    break;
-            case 3: dateString = Lang.format("$1$ $2$", [dateInfo.day, dateInfo.month.substring(0, 3)]);
-                    break;
-            case 4: dateString = Lang.format("$1$ $2$", [dateInfo.month.substring(0, 3), dateInfo.day]);
-                    break;
+        var today = Time.today();
+        var todayValue = today.value();
+        //date changes only once per day (or on settings change) - rebuild the string only then
+        if (cachedDateValue != todayValue) {
+            var dateString = "";
+            var dateInfo = Gregorian.info(today, Time.FORMAT_MEDIUM);
+            switch (dateFormat) {
+                case 0: dateString = dateInfo.day;
+                        break;
+                case 1: dateString = Lang.format("$1$ $2$", [dateInfo.day_of_week.substring(0, 3), dateInfo.day]);
+                        break;
+                case 2: dateString = Lang.format("$1$ $2$", [dateInfo.day, dateInfo.day_of_week.substring(0, 3)]);
+                        break;
+                case 3: dateString = Lang.format("$1$ $2$", [dateInfo.day, dateInfo.month.substring(0, 3)]);
+                        break;
+                case 4: dateString = Lang.format("$1$ $2$", [dateInfo.month.substring(0, 3), dateInfo.day]);
+                        break;
+            }
+            cachedDateString = dateString;
+            cachedDateValue = todayValue;
         }
         dc.setColor(dateColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(screenRadius, dateAt6Y, font, dateString, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(screenRadius, dateAt6Y, font, cachedDateString, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     function shouldPowerSave() {
