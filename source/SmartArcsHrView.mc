@@ -702,16 +702,22 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             }
         }
 
-        //if we're not doing a full screen refresh we need to re-draw the background
-        //before drawing the updated second hand position. Note this will only re-draw
-        //the background in the area specified by the previously computed clipping region.
-        if(!fullScreenRefresh) {
-            drawBackground(dc);
-        }
+        //partial updates only ever change the HR text (there is no second hand).
+        //when we're not doing a full-screen refresh and HR isn't being refreshed
+        //this tick, nothing on screen changes - skip the buffer blit and redraw to
+        //save CPU/battery. this also avoids a needless per-second blit when HR is off.
+        if (fullScreenRefresh || refreshHR) {
+            //if we're not doing a full screen refresh we need to re-draw the background
+            //before drawing the updated HR value. Note this will only re-draw the
+            //background in the area specified by the previously computed clipping region.
+            if (!fullScreenRefresh) {
+                drawBackground(dc);
+            }
 
-        //draw HR
-        if (hrColor != offSettingFlag) {
-            drawHR(dc, refreshHR);
+            //draw HR
+            if (hrColor != offSettingFlag) {
+                drawHR(dc, refreshHR);
+            }
         }
 
         if (shouldPowerSave()) {
