@@ -17,6 +17,7 @@
 */
 
 using Toybox.Application;
+using Toybox.Application.Properties;
 using Toybox.Graphics;
 using Toybox.Lang;
 using Toybox.Position;
@@ -212,7 +213,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         if (deviceSettings.phoneConnected) {
             lastPhoneConnectedTime = Time.now();
             if (clockTime.min % 10 == 0) {
-                Application.getApp().setProperty("lastPhoneConnectedTime", lastPhoneConnectedTime.value());
+                Properties.setValue("lastPhoneConnectedTime", lastPhoneConnectedTime.value());
             }
         } else if (showLostAndFound != offSettingFlag &&
                     (lastPhoneConnectedTime == null || Time.now().subtract(lastPhoneConnectedTime).value() > showLostAndFound)) {
@@ -386,19 +387,17 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     }
 
     function loadUserSettings() {
-        var app = Application.getApp();
-
-        oneColor = app.getProperty("oneColor");
+        oneColor = Properties.getValue("oneColor");
         if (oneColor == offSettingFlag) {
-            battery100Color = app.getProperty("battery100Color");
-            battery30Color = app.getProperty("battery30Color");
-            battery15Color = app.getProperty("battery15Color");
-            notificationColor = app.getProperty("notificationColor");
-            bluetoothColor = app.getProperty("bluetoothColor");
-            dndColor = app.getProperty("dndColor");
-            alarmColor = app.getProperty("alarmColor");
-            sunriseColor = app.getProperty("sunriseColor");
-			sunsetColor = app.getProperty("sunsetColor");
+            battery100Color = Properties.getValue("battery100Color");
+            battery30Color = Properties.getValue("battery30Color");
+            battery15Color = Properties.getValue("battery15Color");
+            notificationColor = Properties.getValue("notificationColor");
+            bluetoothColor = Properties.getValue("bluetoothColor");
+            dndColor = Properties.getValue("dndColor");
+            alarmColor = Properties.getValue("alarmColor");
+            sunriseColor = Properties.getValue("sunriseColor");
+			sunsetColor = Properties.getValue("sunsetColor");
         } else {
             notificationColor = oneColor;
             bluetoothColor = oneColor;
@@ -407,50 +406,50 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             sunriseColor = oneColor;
 			sunsetColor = oneColor;
         }
-        bgColor = app.getProperty("bgColor");
-        ticksColor = app.getProperty("ticksColor");
+        bgColor = Properties.getValue("bgColor");
+        ticksColor = Properties.getValue("ticksColor");
         if (ticksColor != offSettingFlag) {
-            ticks1MinWidth = app.getProperty("ticks1MinWidth");
-            ticks5MinWidth = app.getProperty("ticks5MinWidth");
-            ticks15MinWidth = app.getProperty("ticks15MinWidth");
+            ticks1MinWidth = Properties.getValue("ticks1MinWidth");
+            ticks5MinWidth = Properties.getValue("ticks5MinWidth");
+            ticks15MinWidth = Properties.getValue("ticks15MinWidth");
         }
-        handsColor = app.getProperty("handsColor");
-        handsOutlineColor = app.getProperty("handsOutlineColor");
-        hourHandWidth = app.getProperty("hourHandWidth");
-        minuteHandWidth = app.getProperty("minuteHandWidth");
-        dateColor = app.getProperty("dateColor");
-        hrColor = app.getProperty("hrColor");
+        handsColor = Properties.getValue("handsColor");
+        handsOutlineColor = Properties.getValue("handsOutlineColor");
+        hourHandWidth = Properties.getValue("hourHandWidth");
+        minuteHandWidth = Properties.getValue("minuteHandWidth");
+        dateColor = Properties.getValue("dateColor");
+        hrColor = Properties.getValue("hrColor");
 
         if (dateColor != offSettingFlag) {
-            dateFormat = app.getProperty("dateFormat");
+            dateFormat = Properties.getValue("dateFormat");
         }
 
         if (hrColor != offSettingFlag) {
-            hrRefreshInterval = app.getProperty("hrRefreshInterval");
+            hrRefreshInterval = Properties.getValue("hrRefreshInterval");
         }
 
-        showBatteryIndicator = app.getProperty("showBatteryIndicator");
+        showBatteryIndicator = Properties.getValue("showBatteryIndicator");
 
-        graphBordersColor = app.getProperty("graphBordersColor");
-        graphLineWidth = app.getProperty("graphLineWidth");
-        graphBgColor = app.getProperty("graphBgColor");
-        graphStyle = app.getProperty("graphStyle");
-        graph60Color = app.getProperty("graph60Color");
-        graph70Color = app.getProperty("graph70Color");
-        graph80Color = app.getProperty("graph80Color");
-        graph90Color = app.getProperty("graph90Color");
-        graph100Color = app.getProperty("graph100Color");
-        graph110Color = app.getProperty("graph110Color");
-        graph120Color = app.getProperty("graph120Color");
+        graphBordersColor = Properties.getValue("graphBordersColor");
+        graphLineWidth = Properties.getValue("graphLineWidth");
+        graphBgColor = Properties.getValue("graphBgColor");
+        graphStyle = Properties.getValue("graphStyle");
+        graph60Color = Properties.getValue("graph60Color");
+        graph70Color = Properties.getValue("graph70Color");
+        graph80Color = Properties.getValue("graph80Color");
+        graph90Color = Properties.getValue("graph90Color");
+        graph100Color = Properties.getValue("graph100Color");
+        graph110Color = Properties.getValue("graph110Color");
+        graph120Color = Properties.getValue("graph120Color");
 
-        var power = app.getProperty("powerSaver");
-		powerSaverRefreshInterval = app.getProperty("powerSaverRefreshInterval");
+        var power = Properties.getValue("powerSaver");
+		powerSaverRefreshInterval = Properties.getValue("powerSaverRefreshInterval");
         if (power == 1) {
         	powerSaver = false;
     	} else {
     		powerSaver = true;
-            var powerSaverBeginning = app.getProperty("powerSaverBeginning");
-            var powerSaverEnd = app.getProperty("powerSaverEnd");
+            var powerSaverBeginning = Properties.getValue("powerSaverBeginning");
+            var powerSaverEnd = Properties.getValue("powerSaverEnd");
             startPowerSaverMin = parsePowerSaverTime(powerSaverBeginning);
             if (startPowerSaverMin == -1) {
                 powerSaver = false;
@@ -462,19 +461,19 @@ class SmartArcsHrView extends WatchUi.WatchFace {
             }
         }
 		
-		locationLatitude = app.getProperty("locationLatitude");
-		locationLongitude = app.getProperty("locationLongitude");
+		locationLatitude = Properties.getValue("locationLatitude");
+		locationLongitude = Properties.getValue("locationLongitude");
 
-        showLostAndFound = app.getProperty("showLostAndFound");
+        showLostAndFound = Properties.getValue("showLostAndFound");
         if (showLostAndFound != offSettingFlag) {
             showLostAndFound *= 3600;
         }
-        phone = app.getProperty("phone");
-        email = app.getProperty("email");
-        if (app.getProperty("lastPhoneConnectedTime") == -999) {
+        phone = Properties.getValue("phone");
+        email = Properties.getValue("email");
+        if (Properties.getValue("lastPhoneConnectedTime") == -999) {
             lastPhoneConnectedTime = null;
         } else {
-            lastPhoneConnectedTime = new Time.Moment(app.getProperty("lastPhoneConnectedTime"));
+            lastPhoneConnectedTime = new Time.Moment(Properties.getValue("lastPhoneConnectedTime"));
         }
 
         //ensure that screen will be refreshed when settings are changed 
@@ -1102,8 +1101,8 @@ class SmartArcsHrView extends WatchUi.WatchFace {
 	    	}
 
 	    	if (hasLocation) {
-				Application.getApp().setProperty("locationLatitude", loc[0]);
-				Application.getApp().setProperty("locationLongitude", loc[1]);
+				Properties.setValue("locationLatitude", loc[0]);
+				Properties.setValue("locationLongitude", loc[1]);
 				locationLatitude = loc[0];
 				locationLongitude = loc[1];
 			}
