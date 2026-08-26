@@ -189,7 +189,6 @@ class SmartArcsHrView extends WatchUi.WatchFace {
         hrTextDimension = dc.getTextDimensions("888", font); //to compute correct clip boundaries
         graphFontHeight = dc.getTextDimensions("8", Graphics.FONT_XTINY)[1];
 
-        loadUserSettings();
         fullScreenRefresh = true;
     }
 
@@ -198,7 +197,7 @@ class SmartArcsHrView extends WatchUi.WatchFace {
     //loading resources into memory.
     function onShow() {
         isAwake = true;
-        powerSaverDrawn = false;
+        loadUserSettings();
         requestUpdate();
     }
 
