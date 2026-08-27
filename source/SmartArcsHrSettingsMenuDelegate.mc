@@ -44,7 +44,7 @@ class SmartArcsHrSettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             if (enabled) {
                 var saved = Storage.getValue("savedShowLostAndFound");
                 if (saved == null || saved == -999) {
-                    saved = 1;
+                    saved = 12;
                 }
                 Properties.setValue("showLostAndFound", saved);
             } else {
