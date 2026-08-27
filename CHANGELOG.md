@@ -1,3 +1,8 @@
+# 2.0.0 (August 27, 2026)
+* added watch face on-device settings
+* fixed use of deprecated API methods
+* small bug fixes and performance improvements
+
 # 1.1.1 (May 13, 2025)
 * minor bugfix (drawDate)
 
